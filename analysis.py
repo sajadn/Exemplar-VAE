@@ -60,7 +60,7 @@ directory = args.dir
 
 
 def grid_interpolation_in_latent(model, dir, index, reference_image):
-    z, _ = model.q_z(reference_image.cuda(), prior=True)
+    z, _ = model.q_z(reference_image.to(args.device), prior=True)
     whole_generation = []
     for offset_0 in range(-2, 3, 1):
         row_generation = []
@@ -99,7 +99,7 @@ def cyclic_generation(start_data, dir, index):
     cyclic_generation_dir = os.path.join(dir, 'cyclic_generation')
     os.makedirs(cyclic_generation_dir, exist_ok=True)
     single_data = start_data.unsqueeze(0)
-    generated_cycle = [single_data.cuda()]
+    generated_cycle = [single_data.to(args.device)]
     for i in range(29):
         single_data = \
             model.reference_based_generation_x(N=1, reference_image=single_data)
@@ -111,6 +111,8 @@ def cyclic_generation(start_data, dir, index):
 
 temp = ''
 active_units_text = ''
+args.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 for folder in sorted(os.listdir(directory)):
     if os.path.isdir(directory+'/'+folder) is False:
         continue
@@ -118,8 +120,10 @@ for folder in sorted(os.listdir(directory)):
     test_log_likelihoods, test_kl, test_reconst, active_dimensions = [], [], [], []
     knn_dictionary = {'3': [], '5': [], '7': [], '9': [], '11': [], '13': [], '15': []}
 
+
     torch.manual_seed(args.seed)
-    torch.cuda.manual_seed(args.seed)
+    if args.device=='cuda':
+        torch.cuda.manual_seed(args.seed)
     np.random.seed(args.seed)
 
     for filename in os.listdir(directory+'/'+folder):
@@ -132,7 +136,7 @@ for folder in sorted(os.listdir(directory)):
         config = torch.load(dir + model_name + '.config')
         VAE = importing_model(config)
         model = VAE(config)
-        model.to('cuda')
+        model.to(args.device)
         train_loader, val_loader, test_loader, config = load_dataset(config,
                                                                      training_num=args.training_set_size,
                                                                      no_binarization=True)
@@ -174,7 +178,7 @@ for folder in sorted(os.listdir(directory)):
                                                                              training_num=args.training_set_size,
                                                                              no_binarization=False)
                 with torch.no_grad():
-                    num_active = compute_mean_variance_per_dimension(model, test_loader)
+                    num_active = compute_mean_variance_per_dimension(args, model, test_loader)
                     active_dimensions.append(num_active)
 
             #TODO remove loop
@@ -187,7 +191,7 @@ for folder in sorted(os.listdir(directory)):
 
             if args.tsne_visualization:
                 test_x, _, test_labels = extract_full_data(test_loader)
-                test_z, _ = model.q_z(test_x.cuda())
+                test_z, _ = model.q_z(test_x.to(args.device))
                 tsne = TSNE(n_components=2)
                 plt_colors = np.array(
                     ['blue', 'orange', 'green', 'red', 'cyan', 'pink', 'purple', 'brown', 'gray', 'olive'])

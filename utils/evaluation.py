@@ -19,8 +19,7 @@ def evaluate_loss(args, model, loader, dataset=None, exemplars_embedding=None):
             data, _, _ = data
         else:
             data, _ = data
-        if args.cuda:
-            data = data.cuda()
+        data = data.to(args.device)
         x = data
         x_indices = None
         x = (x, x_indices)
@@ -70,13 +69,13 @@ def load_all_pseudo_input(args, model, dataset):
     return embedding
 
 
-def calculate_likelihood(model, loader, S=5000, exemplars_embedding=None):
+def calculate_likelihood(args, model, loader, S=5000, exemplars_embedding=None):
     likelihood_test = []
     batch_size_evaluation = 1
     auxilary_loader = torch.utils.data.DataLoader(loader.dataset, batch_size=batch_size_evaluation)
     t0 = time.time()
     for index, (data, _) in enumerate(auxilary_loader):
-        data = data.cuda()
+        data = data.to(args.device)
         if index % 100 == 0:
             print(time.time() - t0)
             t0 = time.time()
@@ -98,12 +97,12 @@ def final_evaluation(train_loader, test_loader, best_model_path_load,
                      model, optimizer, args, dir):
         _ = load_model(best_model_path_load, model, optimizer)
         exemplars_embedding = load_all_pseudo_input(args, model, train_loader.dataset)
-        test_samples = next(iter(test_loader))[0].cuda()
+        test_samples = next(iter(test_loader))[0].to(args.device)
         visualize_reconstruction(test_samples, model, args, dir)
         visualize_generation(train_loader.dataset, model, args, dir)
         test_elbo, test_re, test_kl = evaluate_loss(args, model, test_loader, dataset=train_loader.dataset, exemplars_embedding=exemplars_embedding)
         train_elbo, _, _ = evaluate_loss(args, model, train_loader, dataset=train_loader.dataset, exemplars_embedding=exemplars_embedding)
-        test_log_likelihood = calculate_likelihood(model, test_loader, exemplars_embedding=exemplars_embedding, S=args.S)
+        test_log_likelihood = calculate_likelihood(args, model, test_loader, exemplars_embedding=exemplars_embedding, S=args.S)
         final_evaluation_txt = 'FINAL EVALUATION ON TEST SET\n' \
                                'LogL (TEST): {:.2f}\n' \
                                'LogL (TRAIN): {:.2f}\n' \
@@ -128,10 +127,10 @@ def final_evaluation(train_loader, test_loader, best_model_path_load,
 
 
 # TODO remove last loop from this function
-def compute_mean_variance_per_dimension(model, test_loader):
+def compute_mean_variance_per_dimension(args, model, test_loader):
     means = []
     for batch, _ in test_loader:
-        mean, _ = model.q_z(batch.cuda())
+        mean, _ = model.q_z(batch.to(args.device))
         means.append(mean)
     means = torch.cat(means, dim=0).cpu().detach().numpy()
     active = 0

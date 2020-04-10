@@ -1,3 +1,4 @@
+datasets/
 snapshots/*
 models/__pycache__
 utils/load_data/__pycache__

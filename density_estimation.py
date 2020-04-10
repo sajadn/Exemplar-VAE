@@ -35,8 +35,6 @@ parser.add_argument('--lr', type=float, default=0.0005, metavar='LR',
                     help='learning rate (default: 0.0005)')
 parser.add_argument('--early_stopping_epochs', type=int, default=50, metavar='ES',
                     help='number of epochs for early stopping')
-parser.add_argument('--no-cuda', action='store_true', default=False,
-                    help='enables CUDA training')
 parser.add_argument('--z1_size', type=int, default=40, metavar='M1',
                     help='latent size')
 parser.add_argument('--z2_size', type=int, default=40, metavar='M2',
@@ -229,8 +227,7 @@ def run(args, kwargs):
         model = VAE(args)
     if not os.path.exists(dir):
         os.makedirs(dir)
-    if args.cuda:
-        model.cuda()
+    model.to(args.device)
     optimizer = AdamNormGrad(model.parameters(), lr=args.lr)
     print(args)
     config_file = dir+'vae_config.txt'
@@ -241,13 +238,13 @@ def run(args, kwargs):
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    args.cuda = not args.no_cuda and torch.cuda.is_available()
+    args.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     torch.manual_seed(args.seed)
-    if args.cuda:
+    if args.device=='cuda':
         torch.cuda.manual_seed(args.seed)
     random.seed(args.seed)
 
-    kwargs = {'num_workers': 2, 'pin_memory': True} if args.cuda else {}
+    kwargs = {'num_workers': 2, 'pin_memory': True} if args.device=='cuda' else {}
     run(args, kwargs)
 

@@ -34,8 +34,8 @@ def report_knn_on_latent(train_loader, val_loader, test_loader, model, dir, knn_
     val_data, _, val_labels = extract_full_data(val_loader)
     test_data, _, test_labels = extract_full_data(test_loader)
 
-    train_data = train_data.cuda()
-    val_data = val_data.cuda()
+    train_data = train_data.to(args.device)
+    val_data = val_data.to(args.device)
 
     if val is True:
         data_to_evaluate = val_data
@@ -50,14 +50,14 @@ def report_knn_on_latent(train_loader, val_loader, test_loader, model, dir, knn_
         z_train = []
         for i in range(len(train_data)//args.batch_size):
             train_batch = train_data[i*args.batch_size: (i+1)*args.batch_size]
-            z_train_batch, _ = model.q_z(train_batch.cuda(), prior=True)
+            z_train_batch, _ = model.q_z(train_batch.to(args.device), prior=True)
             z_train.append(z_train_batch)
         z_train = torch.cat(z_train, dim=0)
 
     print(z_train.shape)
     indices = []
     for i in range(len(data_to_evaluate)//args.batch_size):
-        z_val, _ = model.q_z(data_to_evaluate[i*args.batch_size: (i+1)*args.batch_size].cuda(), prior=True)
+        z_val, _ = model.q_z(data_to_evaluate[i*args.batch_size: (i+1)*args.batch_size].to(args.device), prior=True)
         indices.append(find_nearest_neighbors(z_val, z_train, None))
     indices = torch.cat(indices, dim=0)
 

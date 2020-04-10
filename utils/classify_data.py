@@ -19,8 +19,8 @@ def compute_accuracy(classifier, model, loader, mean, args, dir=None, plot_mista
                 data = torch.round(model.logit_inverse(data) * 255) / 255
         except:
             pass
-        labels = labels.cuda()
-        pred = classifier(data.double().cuda() - mean)
+        labels = labels.to(args.device)
+        pred = classifier(data.double().to(args.device) - mean)
         acc += torch.mean((labels == torch.argmax(pred, dim=1)).double())
         mistakes = (labels != torch.argmax(pred, dim=1))
         mistakes_list.append(data[mistakes])
@@ -61,7 +61,7 @@ def compute_loss(pred, label, args):
 def classify_data(train_loader, val_loader, test_loader, dir, args, model):
     classifier = nn.Sequential(nn.Linear(784, args.hidden_units), nn.ReLU(),
                                nn.Linear(args.hidden_units, args.hidden_units), nn.ReLU(),
-                               nn.Linear(args.hidden_units, 10)).double().cuda()
+                               nn.Linear(args.hidden_units, 10)).double().to(args.device)
 
     lr = args.lr
 
@@ -95,11 +95,11 @@ def classify_data(train_loader, val_loader, test_loader, dir, args, model):
             data_augment = model.reference_based_generation_x(reference_image=data.detach(), N=1).squeeze().double()
             label_augment = label
 
-            data_augment = data_augment.cuda()
-            label_augment = label_augment.cuda()
+            data_augment = data_augment.to(args.device)
+            label_augment = label_augment.to(args.device)
 
-            data  = data.cuda().double()
-            label = label.cuda().long()
+            data  = data.to(args.device).double()
+            label = label.to(args.device).long()
 
             # imshow(torchvision.utils.make_grid(data.reshape(-1, *args.input_size)).detach())
             # plt.show()

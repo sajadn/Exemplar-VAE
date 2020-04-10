@@ -78,11 +78,7 @@ class BaseModel(nn.Module, ABC):
 
     def reparameterize(self, mu, logvar):
         std = logvar.mul(0.5).exp_()
-        if self.args.cuda:
-            eps = torch.cuda.FloatTensor(std.size()).normal_()
-        else:
-            eps = torch.FloatTensor(std.size()).normal_()
-        eps = Variable(eps)
+        eps = mu.new_empty(size=std.shape).normal_()
         return eps.mul(std).add_(mu)
 
     def log_p_z_vampprior(self, z, exemplars_embedding):
@@ -101,7 +97,7 @@ class BaseModel(nn.Module, ABC):
 
     def log_p_z_exemplar(self, z, z_indices, exemplars_embedding, test):
         centers, center_log_variance, center_indices = exemplars_embedding
-        denominator = torch.tensor(len(centers)).expand(len(z)).float().cuda()
+        denominator = torch.tensor(len(centers)).expand(len(z)).float().to(self.args.device)
         center_log_variance = center_log_variance[0, :].unsqueeze(0)
         prob, _ = log_normal_diag_vectorized(z, centers, center_log_variance)  # MB x C
         if test is False and self.args.no_mask is False:
@@ -140,8 +136,7 @@ class BaseModel(nn.Module, ABC):
         else:
             normal_init(self.means.linear, self.args.pseudoinputs_mean, self.args.pseudoinputs_std)
         self.idle_input = Variable(torch.eye(self.args.number_components, self.args.number_components), requires_grad=False)
-        if self.args.cuda:
-            self.idle_input = self.idle_input.cuda()
+        self.idle_input = self.idle_input.to(self.args.device)
 
     def generate_z_interpolate(self, exemplars_embedding=None, dim=0):
         new_zs = []
@@ -156,24 +151,22 @@ class BaseModel(nn.Module, ABC):
 
     def generate_z(self, N=25, dataset=None):
         if self.args.prior == 'standard':
-            z_sample_rand = torch.FloatTensor(N, self.args.z1_size).normal_().cuda()
+            z_sample_rand = torch.FloatTensor(N, self.args.z1_size).normal_().to(self.args.device)
         elif self.args.prior == 'vampprior':
             means = self.means(self.idle_input)[0:N]
             z_sample_gen_mean, z_sample_gen_logvar = self.q_z(means)
             z_sample_rand = self.reparameterize(z_sample_gen_mean, z_sample_gen_logvar)
-            if self.args.cuda:
-                z_sample_rand = z_sample_rand.cuda()
+            z_sample_rand = z_sample_rand.to(self.args.device)
         elif self.args.prior == 'exemplar_prior':
             rand_indices = torch.randint(low=0, high=self.args.training_set_size, size=(N,))
             exemplars = dataset.tensors[0][rand_indices]
-            z_sample_gen_mean, z_sample_gen_logvar = self.q_z(exemplars.cuda(), prior=True)
+            z_sample_gen_mean, z_sample_gen_logvar = self.q_z(exemplars.to(self.args.device), prior=True)
             z_sample_rand = self.reparameterize(z_sample_gen_mean, z_sample_gen_logvar)
-            if self.args.cuda:
-                z_sample_rand = z_sample_rand.cuda()
+            z_sample_rand = z_sample_rand.to(self.args.device)
         return z_sample_rand
 
     def reference_based_generation_z(self, N=25, reference_image=None):
-        pseudo, log_var = self.q_z(reference_image.cuda(), prior=True)
+        pseudo, log_var = self.q_z(reference_image.to(self.args.device), prior=True)
         pseudo = pseudo.unsqueeze(1).expand(-1, N, -1).reshape(-1, pseudo.shape[-1])
         log_var = log_var[0].unsqueeze(0).expand(len(pseudo), -1)
         z_sample_rand = self.reparameterize(pseudo, log_var)
@@ -205,7 +198,7 @@ class BaseModel(nn.Module, ABC):
         return self.generate_x_from_z(zs, with_reparameterize=False)
 
     def reshape_variance(self, variance, shape):
-        return variance[0]*torch.ones(shape).cuda()
+        return variance[0]*torch.ones(shape).to(self.args.device)
 
     def q_z(self, x, prior=False):
         if 'conv' in self.args.model_name:
@@ -216,7 +209,7 @@ class BaseModel(nn.Module, ABC):
         z_q_mean = self.q_z_mean(h)
         if prior is True:
             if self.args.prior == 'exemplar_prior':
-                z_q_logvar = self.prior_log_variance * torch.ones((x.shape[0], self.args.z1_size)).cuda()
+                z_q_logvar = self.prior_log_variance * torch.ones((x.shape[0], self.args.z1_size)).to(self.args.device)
                 if self.args.model_name == 'newconvhvae_2level':
                     z_q_logvar = z_q_logvar.reshape(-1, 4, 4, 4)
             else:
@@ -236,22 +229,21 @@ class BaseModel(nn.Module, ABC):
             else:
                 batch_data, _ = dataset[i * caching_batch_size:(i + 1) * caching_batch_size]
 
-            exemplars_embedding, log_variance_z = self.q_z(batch_data.cuda(), prior=prior)
+            exemplars_embedding, log_variance_z = self.q_z(batch_data.to(self.args.device), prior=prior)
             cached_z.append(exemplars_embedding)
             cached_log_var.append(log_variance_z)
         cached_z = torch.cat(cached_z, dim=0)
         cached_log_var = torch.cat(cached_log_var, dim=0)
-        if cuda is True:
-            cached_z = cached_z.cuda()
-            cached_log_var = cached_log_var.cuda()
+        cached_z = cached_z.to(self.args.device)
+        cached_log_var = cached_log_var.to(self.args.device)
         return cached_z, cached_log_var
 
     def get_exemplar_set(self, z_mean, z_log_var, dataset, cache, x_indices):
         if self.args.approximate_prior is False:
             exemplars_indices = torch.randint(low=0, high=self.args.training_set_size,
                                               size=(self.args.number_components, ))
-            exemplars_z, log_variance = self.q_z(dataset.tensors[0][exemplars_indices].cuda(), prior=True)
-            exemplar_set = (exemplars_z, log_variance, exemplars_indices.cuda())
+            exemplars_z, log_variance = self.q_z(dataset.tensors[0][exemplars_indices].to(self.args.device), prior=True)
+            exemplar_set = (exemplars_z, log_variance, exemplars_indices.to(self.args.device))
         else:
             exemplar_set = self.get_approximate_nearest_exemplars(
                 z=(z_mean, z_log_var, x_indices),
@@ -261,7 +253,7 @@ class BaseModel(nn.Module, ABC):
 
     def get_approximate_nearest_exemplars(self, z, cache, dataset):
         exemplars_indices = torch.randint(low=0, high=self.args.training_set_size,
-                                          size=(self.args.number_components, )).cuda()
+                                          size=(self.args.number_components, )).to(self.args.device)
         z, _, indices = z
         cached_z, cached_log_variance = cache
         cached_z[indices.reshape(-1)] = z
@@ -270,7 +262,7 @@ class BaseModel(nn.Module, ABC):
             .topk(k=self.args.approximate_k, largest=False, dim=1)
         nearest_indices = torch.unique(nearest_indices.view(-1))
         exemplars_indices = exemplars_indices[nearest_indices].view(-1)
-        exemplars = dataset.tensors[0][exemplars_indices].cuda()
+        exemplars = dataset.tensors[0][exemplars_indices].to(self.args.device)
         exemplars_z, log_variance = self.q_z(exemplars, prior=True)
         cached_z[exemplars_indices] = exemplars_z
         exemplar_set = (exemplars_z, log_variance, exemplars_indices)
