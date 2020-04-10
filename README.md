@@ -2,7 +2,6 @@
 Repository for reproducing results in the paper. 
 
 ## Requirements
-Run
 ```
 pip install -r requirements.txt
 ```
