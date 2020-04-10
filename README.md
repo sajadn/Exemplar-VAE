@@ -10,15 +10,19 @@ pip install -r requirements.txt
 ```
 python3 density_estimation.py --prior exemplar_prior --dataset {dynamic_mnist, fashion_mnist, omniglot} --model_name {vae, hvae_2level, convhvae_2level} --number_components 25000 --approximate_prior {True, False} 
 ```
+<img src="images/density_estimation.png" width="600"/>
+
 
 ## Data Augmentation
 ```
 python3 analysis.py --dir pretrained_model  --classify
 ```
+<img src="images/data_augmentaiton.png" width="400"/>
+
 
 ## Exemplar Based Generation
 ```
-python3 analysis.py --dir pretrained_model  --classify
+python3 analysis.py --dir pretrained_model  --generate
 ```
 <img src="images/exemplar_generation.png" width="600"/>
 
@@ -26,5 +30,7 @@ python3 analysis.py --dir pretrained_model  --classify
 
 ## Cyclic Generation
 ```
-python3 analysis.py --dir pretrained_model  --classify
+python3 analysis.py --dir pretrained_model  --cyclic_generation
 ```
+<img src="images/cyclic_generation.png" width="600"/>
+
