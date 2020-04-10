@@ -20,6 +20,8 @@ python3 analysis.py --dir pretrained_model  --classify
 ```
 python3 analysis.py --dir pretrained_model  --classify
 ```
+<img src="images/exemplar_generation.png" width="600"/>
+
 
 
 ## Cyclic Generation
