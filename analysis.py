@@ -7,8 +7,8 @@ import numpy as np
 import os
 from utils.plot_images import imshow
 from utils.utils import load_model
-from classify_data import classify_data
-from knn_on_latent import report_knn_on_latent, extract_full_data
+from utils.classify_data import classify_data
+from utils.knn_on_latent import report_knn_on_latent, extract_full_data
 from utils.evaluation import compute_mean_variance_per_dimension
 from utils.plot_images import plot_images_in_line, generate_fancy_grid
 from utils.utils import importing_model
