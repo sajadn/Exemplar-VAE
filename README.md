@@ -17,7 +17,7 @@ python3 density_estimation.py --prior exemplar_prior --dataset {dynamic_mnist, f
 ```
 python3 analysis.py --dir pretrained_model  --classify
 ```
-<img src="images/data_augmentation.png" width="300"/>
+<img src="images/data_augmentation.png" width="250"/>
 
 
 ## Exemplar Based Generation
