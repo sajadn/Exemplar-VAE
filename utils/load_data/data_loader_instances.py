@@ -3,7 +3,7 @@ from torchvision import datasets
 import numpy as np
 from scipy.io import loadmat
 from .base_load_data import base_load_data
-
+import wget
 
 class dynamic_mnist_loader(base_load_data):
     def __init__(self, args, use_fixed_validation=False, no_binarization=False):
@@ -81,6 +81,11 @@ class omniglot_loader(base_load_data):
     def obtain_data(self):
         def reshape_data(data):
             return data.reshape((-1, 28, 28)).reshape((-1, 28*28), order='F')
+        dataset_file = os.path.join('datasets', self.args.dataset_name, 'chardata.mat')
+        if not os.path.exists(dataset_file):
+            url = "https://raw.githubusercontent.com/yburda/iwae/master/datasets/OMNIGLOT/chardata.mat"
+            wget.download(url, dataset_file)
+
         omni_raw = loadmat(os.path.join('datasets', self.args.dataset_name, 'chardata.mat'))
 
         x_train = reshape_data(omni_raw['data'].T.astype('float32'))

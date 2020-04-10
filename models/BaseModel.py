@@ -31,7 +31,7 @@ class BaseModel(nn.Module, ABC):
             self.p_x_mean = NonLinear(self.args.hidden_size, np.prod(self.args.input_size))
             self.p_x_logvar = NonLinear(self.args.hidden_size, np.prod(self.args.input_size),
                                         activation=nn.Hardtanh(min_val=-4.5, max_val=0))
-        self.decoder_logstd = torch.nn.Parameter(torch.tensor([0.], requires_grad=True))
+            self.decoder_logstd = torch.nn.Parameter(torch.tensor([0.], requires_grad=True))
 
         self.create_model(args)
         self.he_initializer()

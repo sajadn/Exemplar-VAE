@@ -134,6 +134,7 @@ for folder in sorted(os.listdir(directory)):
         print("MODEL NAME", model_name)
 
         config = torch.load(dir + model_name + '.config')
+        config.device = args.device
         VAE = importing_model(config)
         model = VAE(config)
         model.to(args.device)
