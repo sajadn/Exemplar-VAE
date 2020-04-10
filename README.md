@@ -8,7 +8,7 @@ pip install -r requirements.txt
 
 ## Density Estimation 
 ```
-python3 density_estimation.py --prior exemplar_prior --dataset {dynamic_mnist|fashion_mnist|omniglot} --model_name {vae| hvae_2level|convhvae_2level} --number_components 25000 --approximate_prior {True|False} 
+python3 density_estimation.py --prior exemplar_prior --dataset {dynamic_mnist|fashion_mnist|omniglot} --model_name {vae| hvae_2level|convhvae_2level} --number_components {25000|11500} --approximate_prior {True|False} 
 ```
 <img src="images/density_estimation.png" width="500"/>
 
