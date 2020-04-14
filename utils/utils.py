@@ -1,5 +1,6 @@
 import torch
 import os
+import numpy as np
 
 def importing_model(args):
     if args.model_name == 'vae':
@@ -10,7 +11,7 @@ def importing_model(args):
         from models.convHVAE_2level import VAE
     elif args.model_name == 'new_vae':
         from models.new_vae import VAE
-    elif args.model_name == 'single_conv':
+    elif args.model_name == 'fully_conv':
         from models.fully_conv import VAE
     else:
         raise Exception('Wrong name of the model!')
@@ -28,3 +29,16 @@ def load_model(load_path, model, optimizer=None):
     if optimizer is not None:
         optimizer.load_state_dict(checkpoint['optimizer'])
     return checkpoint
+
+
+def scaled_logit(x, lambd):
+    x = lambd + (1-2*lambd)*x
+    return np.log(x) - np.log1p(-x)
+
+def scaled_logit_torch(x, lambd):
+    x = lambd + (1-2*lambd)*x
+    return x.log() - (-x).log1p()
+
+def inverse_scaled_logit(x, lambd):
+    sigmoid = torch.nn.Sigmoid()
+    return (sigmoid(x) - lambd)/(1-2*lambd)

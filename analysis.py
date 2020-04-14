@@ -15,7 +15,7 @@ from utils.utils import importing_model
 from sklearn.manifold import TSNE
 import copy
 from pylab import rcParams
-
+from utils.utils import inverse_scaled_logit
 
 parser = argparse.ArgumentParser(description='VAE+VampPrior')
 parser.add_argument('--KNN', action='store_true', default=False, help='run KNN classification on latent')
@@ -171,7 +171,7 @@ for folder in sorted(os.listdir(directory)):
                     rcParams['figure.figsize'] = 4, 3
                     generated_dir = dir + 'generated/'
                     if config.use_logit:
-                        reference_images = model.logit_inverse(reference_images)
+                        reference_images = inverse_scaled_logit(reference_images, args.lambd)
                     generate_fancy_grid(config, dir, reference_images, generated)
 
             if args.count_active_dimensions:

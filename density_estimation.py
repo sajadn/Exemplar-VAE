@@ -12,6 +12,7 @@ import time
 from utils.training import train_one_epoch
 from utils.evaluation import evaluate_loss, final_evaluation
 import random
+import numpy as np
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -166,21 +167,23 @@ def run_density_estimation(args, train_loader_input, val_loader_input, test_load
                 break
 
             time_history.append(time_elapsed)
+            val_bpd = val_loss_epoch/(np.prod(args.input_size)*math.log(2))
 
             epoch_report = 'Epoch: {}/{}, Time elapsed: {:.2f}s\n' \
                            'learning rate: {:.5f}\n' \
                            '* Train loss: {:.2f}   (RE: {:.2f}, KL: {:.2f})\n' \
                            'o Val.  loss: {:.2f}   (RE: {:.2f}, KL: {:.2f})\n' \
+                           '^ Val.  BPD:  {:.5f}\n'\
                            '--> Early stopping: {}/{} (BEST: {:.2f})\n'.format(epoch, args.epochs, time_elapsed,
                                                                                learning_rate,
                                                                                train_loss_epoch, train_re_epoch,
                                                                                train_kl_epoch, val_loss_epoch,
-                                                                               val_re_epoch, val_kl_epoch, e,
+                                                                               val_re_epoch, val_kl_epoch,
+                                                                               val_bpd, e,
                                                                                args.early_stopping_epochs, best_loss)
-
             if args.prior == 'exemplar_prior':
                 print("Prior Variance", model.prior_log_variance.item())
-            if args.continuous is True:
+            if args.input_type == 'continuous' or args.input_type=='gray':
                 print("Decoder Variance", model.decoder_logstd.item())
             print(epoch_report)
             with open(dir + 'whole_log.txt', 'a') as f:

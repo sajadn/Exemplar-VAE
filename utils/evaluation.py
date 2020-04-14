@@ -6,7 +6,7 @@ from scipy.special import logsumexp
 import numpy as np
 from utils.utils import load_model
 import torch.nn.functional as F
-
+from utils.utils import inverse_scaled_logit
 
 def evaluate_loss(args, model, loader, dataset=None, exemplars_embedding=None):
     evaluateed_elbo, evaluate_re, evaluate_kl = 0, 0, 0
@@ -24,6 +24,9 @@ def evaluate_loss(args, model, loader, dataset=None, exemplars_embedding=None):
         x_indices = None
         x = (x, x_indices)
         loss, RE, KL = model.calculate_loss(x, average=True, exemplars_embedding=exemplars_embedding)
+        if model.args.use_logit:
+            lambd = torch.tensor(model.args.lambd).float()
+            loss += (-F.softplus(-data) - F.softplus(data) - torch.log((1 - 2 * lambd)/256)).sum(dim=1).mean()
         evaluateed_elbo += loss.data.item()
         evaluate_re += -RE.data.item()
         evaluate_kl += KL.data.item()
@@ -37,8 +40,8 @@ def visualize_reconstruction(test_samples, model, args, dir):
     samples_reconstruction = model.reconstruct_x(test_samples[0:25])
 
     if args.use_logit:
-        test_samples = model.logit_inverse(test_samples)
-        samples_reconstruction = model.logit_inverse(samples_reconstruction)
+        test_samples = torch.round(inverse_scaled_logit(test_samples, args.lambd))
+        samples_reconstruction = torch.round(inverse_scaled_logit(samples_reconstruction, args.lambd))
     plot_images(args, test_samples.cpu().numpy()[0:25], dir, 'real', size_x=5, size_y=5)
     plot_images(args, samples_reconstruction.cpu().numpy(), dir, 'reconstructions', size_x=5, size_y=5)
 
@@ -104,12 +107,14 @@ def final_evaluation(train_loader, test_loader, best_model_path_load,
         train_elbo, _, _ = evaluate_loss(args, model, train_loader, dataset=train_loader.dataset, exemplars_embedding=exemplars_embedding)
         test_log_likelihood = calculate_likelihood(args, model, test_loader, exemplars_embedding=exemplars_embedding, S=args.S)
         final_evaluation_txt = 'FINAL EVALUATION ON TEST SET\n' \
+                               'BPD (TEST):{:.3f}\n'\
                                'LogL (TEST): {:.2f}\n' \
                                'LogL (TRAIN): {:.2f}\n' \
                                'ELBO (TEST): {:.2f}\n' \
                                'ELBO (TRAIN): {:.2f}\n' \
                                'RE: {:.2f}\n' \
                                'KL: {:.2f}'.format(
+            test_log_likelihood/(np.prod(args.input_size)*np.log(2)),
             test_log_likelihood,
             0,
             test_elbo,

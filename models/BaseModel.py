@@ -177,11 +177,6 @@ class BaseModel(nn.Module, ABC):
         x_reconstructed, _, _ = self.forward(x)
         return x_reconstructed
 
-    def logit_inverse(self, x):
-        sigmoid = torch.nn.Sigmoid()
-        lambd = self.args.lambd
-        return ((sigmoid(x) - lambd)/(1-2*lambd))
-
     def generate_x(self, N=25, dataset=None):
         z2_sample_rand = self.generate_z(N=N, dataset=dataset)
         return self.generate_x_from_z(z2_sample_rand)
@@ -202,7 +197,7 @@ class BaseModel(nn.Module, ABC):
 
     def q_z(self, x, prior=False):
         if 'conv' in self.args.model_name:
-            x = x.view(-1, self.args.input_size[0], self.args.input_size[1], self.args.input_size[2])
+            x = x.view(-1, *self.args.input_size)
         h = self.q_z_layers(x)
         if self.args.model_name == 'convhvae_2level':
             h = h.view(x.size(0), -1)

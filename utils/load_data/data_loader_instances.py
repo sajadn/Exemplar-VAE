@@ -3,7 +3,8 @@ from torchvision import datasets
 import numpy as np
 from scipy.io import loadmat
 from .base_load_data import base_load_data
-import wget
+# import wget
+
 
 class dynamic_mnist_loader(base_load_data):
     def __init__(self, args, use_fixed_validation=False, no_binarization=False):

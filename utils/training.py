@@ -1,6 +1,8 @@
 from __future__ import print_function
 import torch
-
+from utils.plot_images import imshow
+import matplotlib.pylab as plt
+from utils.utils import scaled_logit, inverse_scaled_logit, scaled_logit_torch
 
 def set_beta(args, epoch):
     if args.warmup == 0:
@@ -26,9 +28,11 @@ def train_one_epoch(epoch, args, train_loader, model, optimizer):
 
     for batch_idx, (data, indices, target) in enumerate(train_loader):
         data, indices, target = data.to(args.device), indices.to(args.device), target.to(args.device)
-
         if args.dynamic_binarization:
             x = torch.bernoulli(data)
+        elif args.use_logit:
+            x = inverse_scaled_logit(data, args.lambd) + (data.new_empty(size=data.shape).uniform_() -0.5)/256
+            x = scaled_logit_torch(x, args.lambd)
         else:
             x = data
 
@@ -44,7 +48,6 @@ def train_one_epoch(epoch, args, train_loader, model, optimizer):
             train_kl += KL.data.item()
             if cache is not None:
                 cache = (cache[0].detach(), cache[1].detach())
-
     train_loss /= len(train_loader)
     train_re /= len(train_loader)
     train_kl /= len(train_loader)

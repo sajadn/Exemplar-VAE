@@ -6,6 +6,7 @@ from utils.plot_images import imshow
 import matplotlib.pylab as plt
 import torchvision
 from pylab import rcParams
+from utils.utils import inverse_scaled_logit
 
 rcParams['figure.figsize'] = 15, 15
 
@@ -15,8 +16,9 @@ def compute_accuracy(classifier, model, loader, mean, args, dir=None, plot_mista
     mistakes_list = []
     for data, labels in loader:
         try:
-            if model.args.use_logit is True and model.args.continuous is True:
-                data = torch.round(model.logit_inverse(data) * 255) / 255
+            if model.args.use_logit is True:
+                #TODO MAKE THE ARGS CONFIG
+                data = torch.round(inverse_scaled_logit(data, args.lambd) * 256) / 255
         except:
             pass
         labels = labels.to(args.device)
@@ -104,8 +106,9 @@ def classify_data(train_loader, val_loader, test_loader, dir, args, model):
             # imshow(torchvision.utils.make_grid(data.reshape(-1, *args.input_size)).detach())
             # plt.show()
             try:
-                if model.args.use_logit is True and model.args.continuous is True:
-                    data = torch.round(model.logit_inverse(data) * 255) / 255
+                if model.args.use_logit is True:
+                    #TODO MAKE THE ARGS CONFIG
+                    data = torch.round(inverse_scaled_logit(data, args.lambd) * 256) / 255
             except:
                 pass
             data_augment = torch.round(data_augment * 255) / 255

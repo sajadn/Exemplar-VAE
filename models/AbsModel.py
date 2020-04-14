@@ -4,7 +4,7 @@ import torch
 import torch.utils.data
 from models.BaseModel import BaseModel
 from utils.distributions import log_normal_diag
-
+from utils.utils import inverse_scaled_logit
 
 class AbsModel(BaseModel):
     def __init__(self, args):
@@ -22,7 +22,7 @@ class AbsModel(BaseModel):
         generated_x, _ = self.p_x(z)
         try:
             if self.args.use_logit is True:
-                return self.logit_inverse(generated_x)
+                return torch.round(inverse_scaled_logit(generated_x))
             else:
                 return generated_x
         except:
@@ -38,7 +38,7 @@ class AbsModel(BaseModel):
         else:
             if self.args.use_logit is False:
                 x_mean = torch.clamp(x_mean, min=0.+1./512., max=1.-1./512.)
-                x_logvar = self.decoder_logstd*x_mean.new_ones(size=x_mean.shape)
+            x_logvar = self.decoder_logstd*x_mean.new_ones(size=x_mean.shape)
         return x_mean.reshape(-1, np.prod(self.args.input_size)), x_logvar.reshape(-1, np.prod(self.args.input_size))
 
     def forward(self, x, label=0, num_categories=10):

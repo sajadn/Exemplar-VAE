@@ -3,7 +3,7 @@ import torch
 import torch.utils.data as data_utils
 import numpy as np
 from abc import ABC, abstractmethod
-
+from utils.utils import scaled_logit
 
 class base_load_data(ABC):
     def __init__(self, args, use_fixed_validation=False, no_binarization=False):
@@ -16,9 +16,6 @@ class base_load_data(ABC):
     def obtain_data(self):
         pass
 
-    def logit(self, x):
-        return np.log(x) - np.log1p(-x)
-
     def seperate_data_from_label(self, train_dataset, test_dataset):
         x_train = train_dataset.data.numpy()
         y_train = train_dataset.train_labels.numpy().astype(int)
@@ -28,13 +25,12 @@ class base_load_data(ABC):
 
     def preprocessing_(self, x_train, x_test):
         if self.args.input_type == 'gray' or self.args.input_type == 'continuous':
+            x_train = np.clip((x_train + 0.5) / 256., 0., 1.)
+            x_test = np.clip((x_test + 0.5) / 256., 0., 1.)
             if self.args.use_logit:
-                lambd = self.args.lambd
-                x_train = self.logit(lambd + (1 - 2 * lambd) * (x_train + np.random.rand(*x_train.shape)) / 256.)
-                x_test = self.logit(lambd + (1 - 2 * lambd) * (x_test + np.random.rand(*x_test.shape)) / 256.)
-            elif self.args.continuous:
-                x_train = np.clip((x_train + 0.5) / 256., 0., 1.)
-                x_test = np.clip((x_test + 0.5) / 256., 0., 1.)
+                x_train = scaled_logit(x_train, self.args.lambd)
+                x_test = scaled_logit(x_test, self.args.lambd)
+
         else:
             x_train = x_train / 255.
             x_test = x_test / 255.

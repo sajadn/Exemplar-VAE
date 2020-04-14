@@ -2,9 +2,12 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
 import os
+import torchvision
 
 
-def imshow(img, title=None, interpolation=None, show_plot=False):
+def imshow(img, title=None, interpolation=None, show_plot=False, grid=False):
+    if grid:
+        img = torchvision.utils.make_grid(img)
     npimg = img.detach().cpu().numpy()
     plt.imshow(np.transpose(npimg, (1, 2, 0)), interpolation=interpolation)
     if title is not None:
