@@ -3,7 +3,7 @@ Code for reproducing results in the paper: [Exemplar VAE](https://arxiv.org/abs/
 
 ## Requirements
 ```
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 ## Density Estimation 
