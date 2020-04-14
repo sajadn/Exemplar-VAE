@@ -1,5 +1,5 @@
 ## Exemplar-VAE
-Repository for reproducing results in the paper. 
+Code for reproducing results in the paper: >[Exemplar VAE](https://arxiv.org/abs/2004.04795)
 
 ## Requirements
 ```
