@@ -1,3 +1,4 @@
+classification_report/*
 datasets/
 snapshots/*
 models/__pycache__
