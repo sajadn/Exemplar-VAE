@@ -18,7 +18,7 @@ def compute_accuracy(classifier, model, loader, mean, args, dir=None, plot_mista
         try:
             if model.args.use_logit is True:
                 #TODO MAKE THE ARGS CONFIG
-                data = torch.round(inverse_scaled_logit(data, args.lambd) * 256) / 255
+                data = torch.floor(inverse_scaled_logit(data, args.lambd) * 256) / 255
         except:
             pass
         labels = labels.to(args.device)
@@ -108,7 +108,7 @@ def classify_data(train_loader, val_loader, test_loader, dir, args, model):
             try:
                 if model.args.use_logit is True:
                     #TODO MAKE THE ARGS CONFIG
-                    data = torch.round(inverse_scaled_logit(data, args.lambd) * 256) / 255
+                    data = torch.floor(inverse_scaled_logit(data, args.lambd) * 256) / 255
             except:
                 pass
             data_augment = torch.round(data_augment * 255) / 255

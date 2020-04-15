@@ -7,6 +7,8 @@ import numpy as np
 from utils.utils import load_model
 import torch.nn.functional as F
 from utils.utils import inverse_scaled_logit
+from utils.plot_images import imshow
+
 
 def evaluate_loss(args, model, loader, dataset=None, exemplars_embedding=None):
     evaluateed_elbo, evaluate_re, evaluate_kl = 0, 0, 0
@@ -40,8 +42,8 @@ def visualize_reconstruction(test_samples, model, args, dir):
     samples_reconstruction = model.reconstruct_x(test_samples[0:25])
 
     if args.use_logit:
-        test_samples = torch.round(inverse_scaled_logit(test_samples, args.lambd))
-        samples_reconstruction = torch.round(inverse_scaled_logit(samples_reconstruction, args.lambd))
+        test_samples = torch.floor(inverse_scaled_logit(test_samples, args.lambd)*256).int()
+        samples_reconstruction =  torch.floor(inverse_scaled_logit(samples_reconstruction, args.lambd)*256).int()
     plot_images(args, test_samples.cpu().numpy()[0:25], dir, 'real', size_x=5, size_y=5)
     plot_images(args, samples_reconstruction.cpu().numpy(), dir, 'reconstructions', size_x=5, size_y=5)
 

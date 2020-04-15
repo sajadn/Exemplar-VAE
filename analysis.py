@@ -171,7 +171,7 @@ for folder in sorted(os.listdir(directory)):
                     rcParams['figure.figsize'] = 4, 3
                     generated_dir = dir + 'generated/'
                     if config.use_logit:
-                        reference_images = inverse_scaled_logit(reference_images, args.lambd)
+                        reference_images = torch.floor(inverse_scaled_logit(reference_images, config.lambd)*256).int()
                     generate_fancy_grid(config, dir, reference_images, generated)
 
             if args.count_active_dimensions:

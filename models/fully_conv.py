@@ -16,8 +16,11 @@ class VAE(AbsModel):
                 self.normalization = nn.BatchNorm2d(input_size)
                 self.conv1 = weight_norm(nn.Conv2d(input_size, output_size, kernel_size=kernel, stride=stride, padding=padding,
                                        bias=True))
+                self.conv2 = weight_norm(
+                    nn.Conv2d(output_size, output_size, kernel_size=kernel, stride=stride, padding=padding,
+                              bias=True))
                 self.activation = torch.nn.ELU()
-                self.f = torch.nn.Sequential(self.activation, self.conv1)
+                self.f = torch.nn.Sequential(self.activation, self.conv1, self.activation, self.conv2)
 
             def forward(self, x):
                 return x + self.f(x)

@@ -51,11 +51,16 @@ def generate_fancy_grid(config, dir, reference_data, generated, col_num=4, row_n
 
         if config.input_size[0] > 1:
             grid = np.transpose(grid, (1, 2, 0))
-        grid = np.squeeze(grid)
-        plt.imsave(arr=np.clip(grid, 0, 1),
+
+        if config.input_type == 'continuous' and config.input_type != 'gray':
+            grid = np.clip(grid, 0, 255)
+            grid = grid.astype(np.uint8)
+        else:
+            grid = np.clip(grid, 0, 1)
+
+        plt.imsave(arr=grid,
                    fname=generated_dir + "generated_{}.png".format(k),
                    cmap='gray', format='png')
-
         img = cv2.imread(generated_dir + "generated_{}.png".format(k))
         res = cv2.resize(img, dsize=(width*3, height*3), interpolation=cv2.INTER_NEAREST)
         cv2.imwrite(generated_dir + "generated_{}.png".format(k), res)

@@ -5,6 +5,7 @@ import torch.utils.data
 from models.BaseModel import BaseModel
 from utils.distributions import log_normal_diag
 from utils.utils import inverse_scaled_logit
+from utils.plot_images import imshow
 
 class AbsModel(BaseModel):
     def __init__(self, args):
@@ -22,10 +23,11 @@ class AbsModel(BaseModel):
         generated_x, _ = self.p_x(z)
         try:
             if self.args.use_logit is True:
-                return torch.round(inverse_scaled_logit(generated_x))
+                return torch.floor(inverse_scaled_logit(generated_x, self.args.lambd)*256).int()
             else:
                 return generated_x
-        except:
+        except Exception as e:
+            print(e)
             return generated_x
 
     def p_x(self, z):

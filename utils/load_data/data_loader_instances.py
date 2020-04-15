@@ -175,6 +175,7 @@ def load_dataset(args, training_num=None, use_fixed_validation=False, no_binariz
         args.training_set_size = 40000
         args.input_size = [3, 32, 32]
         args.input_type = 'continuous'
+        args.lambd = 0.05
         train_loader, val_loader, test_loader, args = cifar10_loader(args).load_dataset(**kwargs)
     else:
         raise Exception('Wrong name of the dataset!')

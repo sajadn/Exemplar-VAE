@@ -32,6 +32,7 @@ def train_one_epoch(epoch, args, train_loader, model, optimizer):
             x = torch.bernoulli(data)
         elif args.use_logit:
             x = inverse_scaled_logit(data, args.lambd) + (data.new_empty(size=data.shape).uniform_() -0.5)/256
+
             x = scaled_logit_torch(x, args.lambd)
         else:
             x = data
@@ -41,6 +42,7 @@ def train_one_epoch(epoch, args, train_loader, model, optimizer):
         loss, RE, KL = model.calculate_loss(x, beta, average=True, cache=cache, dataset=train_loader.dataset)
         loss.backward()
         optimizer.step()
+
 
         with torch.no_grad():
             train_loss += loss.data.item()
