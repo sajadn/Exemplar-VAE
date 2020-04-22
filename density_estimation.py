@@ -186,7 +186,7 @@ def run_density_estimation(args, train_loader_input, val_loader_input, test_load
             if args.prior == 'exemplar_prior':
                 print("Prior Variance", model.prior_log_variance.item())
             if args.input_type == 'continuous' or args.input_type=='gray':
-                print("Decoder Variance", model.decoder_logstd.item())
+                print("Decoder Variance", model.decoder_logstd)
             print(epoch_report)
             with open(dir + 'whole_log.txt', 'a') as f:
                 print(epoch_report, file=f)
