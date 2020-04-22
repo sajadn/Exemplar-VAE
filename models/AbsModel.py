@@ -40,8 +40,10 @@ class AbsModel(BaseModel):
         else:
             if self.args.use_logit is False:
                 x_mean = torch.clamp(x_mean, min=0.+1./512., max=1.-1./512.)
-            x_logvar = self.decoder_logstd*x_mean.new_ones(size=x_mean.shape)
-        return x_mean.reshape(-1, np.prod(self.args.input_size)), x_logvar.reshape(-1, np.prod(self.args.input_size))
+            reshaped_var = self.decoder_logstd.unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
+            x_logvar = reshaped_var*x_mean.new_ones(size=x_mean.shape)
+        return x_mean.reshape(-1, np.prod(self.args.input_size)),\
+               x_logvar.reshape(-1, np.prod(self.args.input_size))
 
     def forward(self, x, label=0, num_categories=10):
         z_q_mean, z_q_logvar = self.q_z(x)

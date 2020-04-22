@@ -3,10 +3,10 @@ import numpy as np
 import torch.nn as nn
 from utils.nn import  GatedDense, NonLinear, \
     Conv2d, GatedConv2d
-from models.AbsHModel import BaseHModel
+from models.AbsHDownModel import AbsHDownModel
 
 
-class VAE(BaseHModel):
+class VAE(AbsHDownModel):
     def __init__(self, args):
         super(VAE, self).__init__(args)
 

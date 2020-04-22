@@ -92,6 +92,8 @@ parser.add_argument('--use_logit', type=str2bool, default=False)
 parser.add_argument('--lambd', type=float, default=1e-4)
 parser.add_argument('--bottleneck', type=int, default=6)
 parser.add_argument('--training_set_size', type=int, default=50000)
+parser.add_argument('--rs_blocks', type=int, default=5)
+
 
 
 def initial_or_load(checkpoint_path_load, model, optimizer, dir):

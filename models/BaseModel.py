@@ -31,7 +31,7 @@ class BaseModel(nn.Module, ABC):
             self.p_x_mean = NonLinear(self.args.hidden_size, np.prod(self.args.input_size))
             self.p_x_logvar = NonLinear(self.args.hidden_size, np.prod(self.args.input_size),
                                         activation=nn.Hardtanh(min_val=-4.5, max_val=0))
-            self.decoder_logstd = torch.nn.Parameter(torch.tensor([0.], requires_grad=True))
+            self.decoder_logstd = torch.nn.Parameter(torch.randn(self.args.input_size[0], ), requires_grad=True)
 
         self.create_model(args)
         self.he_initializer()
@@ -195,7 +195,7 @@ class BaseModel(nn.Module, ABC):
     def reshape_variance(self, variance, shape):
         return variance[0]*torch.ones(shape).to(self.args.device)
 
-    def q_z(self, x, prior=False):
+    def q_z(self, x, z1=None, prior=False):
         if 'conv' in self.args.model_name:
             x = x.view(-1, *self.args.input_size)
         h = self.q_z_layers(x)

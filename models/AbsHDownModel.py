@@ -6,9 +6,9 @@ from utils.distributions import log_normal_diag
 from .BaseModel import BaseModel
 
 
-class BaseHModel(BaseModel):
+class AbsHDownModel(BaseModel):
     def __init__(self, args):
-        super(BaseHModel, self).__init__(args)
+        super(AbsHDownModel, self).__init__(args)
 
     def kl_loss(self, latent_stats, exemplars_embedding, dataset, cache, x_indices):
         z1_q, z1_q_mean, z1_q_logvar, z2_q, z2_q_mean, z2_q_logvar, z1_p_mean, z1_p_logvar = latent_stats
@@ -45,11 +45,11 @@ class BaseHModel(BaseModel):
         z1_p_logvar = self.p_z1_logvar(z2)
         return z1_p_mean, z1_p_logvar
 
-    def q_z1(self, x, z2):
+    def q_z1(self, x, z):
         x = self.q_z1_layers_x(x)
         if self.args.model_name == 'convhvae_2level':
             x = x.view(x.size(0),-1)
-        z2 = self.q_z1_layers_z2(z2)
+        z2 = self.q_z1_layers_z2(z)
         h = torch.cat((x,z2),1)
         h = self.q_z1_layers_joint(h)
         z1_q_mean = self.q_z1_mean(h)
@@ -58,19 +58,14 @@ class BaseHModel(BaseModel):
 
     def p_x(self, z1, z2):
         z1 = self.p_x_layers_z1(z1)
-
         z2 = self.p_x_layers_z2(z2)
-
         h = torch.cat((z1, z2), 1)
-
         if 'convhvae_2level' in self.args.model_name:
             h = self.p_x_layers_joint_pre(h)
-            if self.args.model_name == 'convhvae_2level':
-                h = h.view(-1, self.args.input_size[0], self.args.input_size[1], self.args.input_size[2])
-
+            h = h.view(-1, self.args.input_size[0], self.args.input_size[1], self.args.input_size[2])
         h_decoder = self.p_x_layers_joint(h)
-
         x_mean = self.p_x_mean(h_decoder)
+
         if 'convhvae_2level' in self.args.model_name:
             x_mean = x_mean.view(-1, np.prod(self.args.input_size))
 
@@ -81,8 +76,25 @@ class BaseHModel(BaseModel):
             x_logvar = self.p_x_logvar(h_decoder)
             if 'convhvae_2level' in self.args.model_name:
                 x_logvar = x_logvar.view(-1, np.prod(self.args.input_size))
-
         return x_mean, x_logvar
+
+    def q_z(self, x, prior=False):
+        if 'conv' in self.args.model_name:
+            x = x.view(-1, *self.args.input_size)
+        h = self.q_z_layers(x)
+        if self.args.model_name == 'convhvae_2level':
+            h = h.view(x.size(0), -1)
+        z_q_mean = self.q_z_mean(h)
+        if prior is True:
+            if self.args.prior == 'exemplar_prior':
+                z_q_logvar = self.prior_log_variance * torch.ones((x.shape[0], self.args.z1_size)).to(self.args.device)
+                if self.args.model_name == 'newconvhvae_2level':
+                    z_q_logvar = z_q_logvar.reshape(-1, 4, 4, 4)
+            else:
+                z_q_logvar = self.q_z_logvar(h)
+        else:
+            z_q_logvar = self.q_z_logvar(h)
+        return z_q_mean.reshape(-1, self.args.z1_size), z_q_logvar.reshape(-1, self.args.z1_size)
 
     def forward(self, x):
         z2_q_mean, z2_q_logvar = self.q_z(x)
