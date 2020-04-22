@@ -38,6 +38,7 @@ parser.add_argument('--save_model_path', type=str, default='')
 parser.add_argument('--classification_dir', type=str, default='classification_report')
 parser.add_argument('--epochs', type=int, default=100)
 parser.add_argument('--seed', type=int, default=1)
+parser.add_argument('--interpolate', action='store_true', default=False)
 args = parser.parse_args()
 
 print(args)
@@ -79,6 +80,21 @@ def grid_interpolation_in_latent(model, dir, index, reference_image):
     os.makedirs(save_dir, exist_ok=True)
     plt.axis('off')
     plt.savefig(os.path.join(save_dir, 'interpolation{}'.format(i)), bbox='tight')
+
+
+def interpolation(model, reference_images, dir, steps=20, k=0):
+    z, _ = model.q_z(reference_images)
+    first = z[0]
+    second = z[1]
+    direction = (second-first)/steps
+    generated_list = []
+    for i in range(steps):
+        generated = model.generate_x_from_z(first, with_reparameterize=False)
+        generated_list.append(generated)
+        first += direction
+    save_dir = os.path.join(dir, 'interpolation')
+    os.makedirs(save_dir, exist_ok=True)
+    plot_images_in_line(torch.cat(generated_list, dim=0), args, dir=save_dir, file_name='interpolation_{}.png'.format(k))
 
 
 def compute_test_metrics(test_log_likelihood, test_kl, test_re):
@@ -172,6 +188,10 @@ for folder in sorted(os.listdir(directory)):
                     generated_dir = dir + 'generated/'
                     if config.use_logit:
                         reference_images = torch.floor(inverse_scaled_logit(reference_images, config.lambd)*256).int()
+                    else:
+                        reference_images = (reference_images*256).int()
+                        generated = (generated*256).int()
+
                     generate_fancy_grid(config, dir, reference_images, generated)
 
             if args.count_active_dimensions:
@@ -190,16 +210,35 @@ for folder in sorted(os.listdir(directory)):
                                                                               size=(1,))]
                         grid_interpolation_in_latent(model, dir, i, reference_image=image)
 
+            if args.interpolate:
+                for k in range(100):
+                    indices = torch.randint(low=0, high=args.training_set_size, size=(2,))
+                    reference_images = train_loader.dataset.tensors[0][indices]
+                    interpolation(model, reference_images.cuda(), dir, steps=20, k=k)
+
+
             if args.tsne_visualization:
+                rcParams['figure.figsize'] = 10, 10
                 test_x, _, test_labels = extract_full_data(test_loader)
                 test_z, _ = model.q_z(test_x.to(args.device))
                 tsne = TSNE(n_components=2)
                 plt_colors = np.array(
                     ['blue', 'orange', 'green', 'red', 'cyan', 'pink', 'purple', 'brown', 'gray', 'olive'])
 
+                if config.dataset_name == 'fashion_mnist':
+                    label_names = ['T-shirt', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt',
+                                   'Sneaker', 'Bag', 'Ankle Boot']
+                elif config.dataset_name == 'dynamic_mnist':
+                    label_names = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+                else:
+                    label_names = None
+
                 points_to_visualize = tsne.fit_transform(X=test_z.detach().cpu().numpy())
-                plt.scatter(points_to_visualize[:, 0], points_to_visualize[:, 1],
-                            c=plt_colors[test_labels.cpu().numpy()], s=2)
+                for i in range(len(label_names)):
+                    label_i = (test_labels == i)
+                    plt.scatter(points_to_visualize[label_i, 0], points_to_visualize[label_i, 1],
+                                c=plt_colors[i], s=3, label=label_names[i])
+                plt.legend(fontsize=10, markerscale=5)
                 plt.savefig(dir+'tsne.png')
                 plt.show()
 
