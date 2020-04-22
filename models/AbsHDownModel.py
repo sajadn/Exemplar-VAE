@@ -78,23 +78,6 @@ class AbsHDownModel(BaseModel):
                 x_logvar = x_logvar.view(-1, np.prod(self.args.input_size))
         return x_mean, x_logvar
 
-    def q_z(self, x, prior=False):
-        if 'conv' in self.args.model_name:
-            x = x.view(-1, *self.args.input_size)
-        h = self.q_z_layers(x)
-        if self.args.model_name == 'convhvae_2level':
-            h = h.view(x.size(0), -1)
-        z_q_mean = self.q_z_mean(h)
-        if prior is True:
-            if self.args.prior == 'exemplar_prior':
-                z_q_logvar = self.prior_log_variance * torch.ones((x.shape[0], self.args.z1_size)).to(self.args.device)
-                if self.args.model_name == 'newconvhvae_2level':
-                    z_q_logvar = z_q_logvar.reshape(-1, 4, 4, 4)
-            else:
-                z_q_logvar = self.q_z_logvar(h)
-        else:
-            z_q_logvar = self.q_z_logvar(h)
-        return z_q_mean.reshape(-1, self.args.z1_size), z_q_logvar.reshape(-1, self.args.z1_size)
 
     def forward(self, x):
         z2_q_mean, z2_q_logvar = self.q_z(x)
