@@ -235,8 +235,7 @@ class BaseModel(nn.Module, ABC):
 
     def get_exemplar_set(self, z_mean, z_log_var, dataset, cache, x_indices):
         if self.args.approximate_prior is False:
-            exemplars_indices = torch.randint(low=0, high=self.args.training_set_size,
-                                              size=(self.args.number_components, ))
+            exemplars_indices = torch.randperm(self.args.training_set_size)[:self.args.number_components]
             exemplars_z, log_variance = self.q_z(dataset.tensors[0][exemplars_indices].to(self.args.device), prior=True)
             exemplar_set = (exemplars_z, log_variance, exemplars_indices.to(self.args.device))
         else:
@@ -247,8 +246,7 @@ class BaseModel(nn.Module, ABC):
         return exemplar_set
 
     def get_approximate_nearest_exemplars(self, z, cache, dataset):
-        exemplars_indices = torch.randint(low=0, high=self.args.training_set_size,
-                                          size=(self.args.number_components, )).to(self.args.device)
+        exemplars_indices = torch.randperm(self.args.training_set_size)[:self.args.number_components].to(self.args.device)
         z, _, indices = z
         cached_z, cached_log_variance = cache
         cached_z[indices.reshape(-1)] = z
