@@ -1,4 +1,5 @@
 classification_report/*
+pretrained_model/*
 datasets/
 snapshots/*
 models/__pycache__

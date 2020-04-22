@@ -13,6 +13,8 @@ def importing_model(args):
         from models.new_vae import VAE
     elif args.model_name == 'fully_conv':
         from models.fully_conv import VAE
+    elif args.model_name == 'fully_hconv':
+        from models.fully_hconv import VAE
     else:
         raise Exception('Wrong name of the model!')
     return VAE
