@@ -11,7 +11,7 @@ from utils.nn import he_init
 from utils.distributions import pairwise_distance
 from utils.distributions import log_bernoulli, log_normal_diag, log_normal_standard, log_logistic_256
 from abc import ABC, abstractmethod
-
+from torch import _weight_norm
 
 class BaseModel(nn.Module, ABC):
     def __init__(self, args):
@@ -261,4 +261,22 @@ class BaseModel(nn.Module, ABC):
         exemplar_set = (exemplars_z, log_variance, exemplars_indices)
         return exemplar_set
 
+    def data_dependent_init(self, data_batch):
+        def init_hook_(module, input, output):
+            std, mean = torch.std_mean(output, dim=[0, 2, 3])
+            g = getattr(module, 'weight_g')
+            g.data = g.data/std.reshape((len(std), 1, 1, 1))
+            b = getattr(module, 'bias')
+            b.data -= mean
+            b.data /= std
+            setattr(module, 'weight', _weight_norm(getattr(module, 'weight_v'), g, dim=0))
+            return module.conv2d_forward(input[0], module.weight)
 
+        handles = []
+        for m in self.modules():
+            if isinstance(m, torch.nn.Conv2d):
+                handles.append(m.register_forward_hook(init_hook_))
+
+        self.forward(data_batch)
+        for h in handles:
+            h.remove()
