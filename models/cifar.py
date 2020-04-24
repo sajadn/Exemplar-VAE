@@ -34,7 +34,6 @@ class VAE(AbsModel):
             nn.ELU(),
             weight_norm(nn.Conv2d(in_channels=self.args.input_size[0], out_channels=self.cs, kernel_size=3, stride=2, padding=1)),
             *[block(input_size=self.cs, output_size=self.cs, stride=1, kernel=3, padding=1) for _ in range(self.args.rs_blocks)],
-            *[block(input_size=self.cs, output_size=self.cs, stride=1, kernel=3, padding=1) for _ in range(self.args.rs_blocks)],
         )
 
         self.q_z_mean = nn.Sequential(
@@ -50,7 +49,6 @@ class VAE(AbsModel):
             nn.ELU(),
             weight_norm(nn.Conv2d(in_channels=self.bottleneck, out_channels=self.cs, kernel_size=3, stride=1, padding=1)),
             *[block(input_size=self.cs, output_size=self.cs, stride=1, kernel=3, padding=1) for _ in range(self.args.rs_blocks)],
-            *[block(input_size=self.cs, output_size=self.cs, stride=1, kernel=3, padding=1) for _ in range(self.args.rs_blocks)]
         )
 
         if self.args.input_type == 'binary':

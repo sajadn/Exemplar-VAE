@@ -26,7 +26,7 @@ class VAE(AbsUpModel):
                 return x + self.f(x)
 
         self.train_data_size = train_data_size
-        self.cs = 200
+        self.cs = 100
         self.bottleneck=self.args.bottleneck
 
         self.q_z1_layers_x = nn.Sequential(

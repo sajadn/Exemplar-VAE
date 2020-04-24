@@ -214,7 +214,7 @@ for folder in sorted(os.listdir(directory)):
                 for k in range(100):
                     indices = torch.randint(low=0, high=args.training_set_size, size=(2,))
                     reference_images = train_loader.dataset.tensors[0][indices]
-                    interpolation(model, reference_images.cuda(), dir, steps=20, k=k)
+                    interpolation(model, reference_images.to(args.device), dir, steps=20, k=k)
 
 
             if args.tsne_visualization:
