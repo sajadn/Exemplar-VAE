@@ -34,9 +34,7 @@ class VAE(AbsModel):
             nn.ELU(),
             weight_norm(nn.Conv2d(in_channels=self.args.input_size[0], out_channels=self.cs, kernel_size=3, stride=2, padding=1)),
             *[block(input_size=self.cs, output_size=self.cs, stride=1, kernel=3, padding=1) for _ in range(self.args.rs_blocks)],
-            nn.ELU(),
-            weight_norm(nn.Conv2d(in_channels=self.cs, out_channels=self.cs*2, kernel_size=3, stride=2, padding=1)),
-            *[block(input_size=self.cs*2, output_size=self.cs*2, stride=1, kernel=3, padding=1) for _ in range(self.args.rs_blocks)],
+            *[block(input_size=self.cs, output_size=self.cs, stride=1, kernel=3, padding=1) for _ in range(self.args.rs_blocks)],
         )
 
         self.q_z_mean = nn.Sequential(
@@ -50,11 +48,8 @@ class VAE(AbsModel):
         self.p_x_layers = nn.Sequential(
             nn.Upsample(scale_factor=2),
             nn.ELU(),
-            weight_norm(nn.Conv2d(in_channels=self.bottleneck, out_channels=self.cs*2, kernel_size=3, stride=1, padding=1)),
-            *[block(input_size=self.cs*2, output_size=self.cs*2, stride=1, kernel=3, padding=1) for _ in range(self.args.rs_blocks)],
-            nn.Upsample(scale_factor=2),
-            nn.ELU(),
-            weight_norm(nn.Conv2d(in_channels=self.cs*2, out_channels=self.cs, kernel_size=3, stride=1, padding=1)),
+            weight_norm(nn.Conv2d(in_channels=self.bottleneck, out_channels=self.cs, kernel_size=3, stride=1, padding=1)),
+            *[block(input_size=self.cs, output_size=self.cs, stride=1, kernel=3, padding=1) for _ in range(self.args.rs_blocks)],
             *[block(input_size=self.cs, output_size=self.cs, stride=1, kernel=3, padding=1) for _ in range(self.args.rs_blocks)]
         )
 

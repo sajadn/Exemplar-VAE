@@ -21,7 +21,7 @@ def evaluate_loss(args, model, loader, dataset=None, exemplars_embedding=None):
             data, _, _ = data
         else:
             data, _ = data
-        data = data.to(args.device)
+        data = data.squeeze().to(args.device)
         x = data
         x_indices = None
         x = (x, x_indices)
@@ -79,8 +79,11 @@ def calculate_likelihood(args, model, loader, S=5000, exemplars_embedding=None):
     batch_size_evaluation = 1
     auxilary_loader = torch.utils.data.DataLoader(loader.dataset, batch_size=batch_size_evaluation)
     t0 = time.time()
-    for index, (data, _) in enumerate(auxilary_loader):
-        data = data.to(args.device)
+    for index, data in enumerate(auxilary_loader):
+        if len(data) == 3:
+            data, _, _ = data.to(args.device)
+        else:
+            data, _ = data.to(args.device)
         if index % 100 == 0:
             print(time.time() - t0)
             t0 = time.time()

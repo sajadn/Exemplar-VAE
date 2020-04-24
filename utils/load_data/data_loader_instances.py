@@ -1,9 +1,13 @@
 import os
-from torchvision import datasets
+from torchvision import datasets, transforms
 import numpy as np
 from scipy.io import loadmat
 from .base_load_data import base_load_data
-# import wget
+import wget
+import PIL
+import h5py
+import torch
+import torch.utils.data as data_utils
 
 
 class dynamic_mnist_loader(base_load_data):
@@ -15,6 +19,98 @@ class dynamic_mnist_loader(base_load_data):
         test = datasets.MNIST(os.path.join('datasets', self.args.dataset_name), train=False)
         return train, test
 
+
+class h5dataset(torch.utils.data.Dataset):
+    def __init__(self, in_file, args):
+        super(h5dataset, self).__init__()
+        self.args = args
+
+        self.file = h5py.File(in_file, 'r')
+        self.n_images, self.nx, self.ny, self.ch = self.file['data'].shape
+        self.tensors = (self.file['data'], torch.arange(self.n_images).reshape(-1, 1))
+
+    def __getitem__(self, index):
+        return self.preprocess(self.tensors[0][index, :, :, :].astype('float32')),\
+               self.tensors[1][index], torch.tensor([])
+
+    def __len__(self):
+        return self.n_images
+
+    def preprocess(self, data):
+        if self.args.input_type == 'gray' or self.args.input_type == 'continuous':
+            data = np.clip((data + 0.5) / 256., 0., 1.)
+            # if self.args.use_logit:
+            #     data = scaled_logit(data, self.args.lambd)
+        else:
+            data = data / 255.
+        return  torch.from_numpy(np.reshape(data, (-1, np.prod(self.args.input_size))))
+
+
+class celebA_loader(base_load_data):
+    def __init__(self, args, use_fixed_validation=False, no_binarization=False):
+        super(celebA_loader, self).__init__(args, use_fixed_validation, no_binarization=no_binarization)
+
+    def obtain_data(self):
+        train = h5dataset(os.path.join(os.path.join('datasets', self.args.dataset_name), 'train.h5'), self.args)
+        valid = h5dataset(os.path.join(os.path.join('datasets', self.args.dataset_name), 'valid.h5'), self.args)
+        test = h5dataset(os.path.join(os.path.join('datasets', self.args.dataset_name), 'test.h5'), self.args)
+        # whole_temp = []
+        # for i in range(len(test)):
+        #     print(i)
+        #     temp = test[i]
+        #     temp = np.transpose(temp, (1, 2, 0))
+        #     whole_temp.append(temp)
+        # np.stack(whole_temp, axis=0)
+        # h5f = h5py.File('data.h5', 'w')
+        # h5f.create_dataset('data', data=whole_temp)
+        # h5f.close()
+        # exit()
+        # train = datasets.CelebA(os.path.join('datasets', self.args.dataset_name), split='valid', download=True)
+        # self.center_crop_resize(train)
+        # test = datasets.MNIST(os.path.join('datasets', self.args.dataset_name), train=False)
+
+
+        return (train, valid), test
+
+
+    def post_processing(self, x_train, x_val, x_test, y_train, y_val, y_test, init_mean=0.05, init_std=0.01, **kwargs):
+        train_loader = data_utils.DataLoader(x_train, batch_size=self.args.batch_size, shuffle=True, **kwargs)
+        if len(x_val) > 0:
+            val_loader = data_utils.DataLoader(x_val, batch_size=self.args.test_batch_size, shuffle=True, **kwargs)
+        else:
+            val_loader = None
+        test_loader = data_utils.DataLoader(x_test, batch_size=self.args.test_batch_size, shuffle=False, **kwargs)
+        self.vampprior_initialization(x_train, init_mean, init_std)
+        return train_loader, val_loader, test_loader
+
+
+    def center_crop_resize(self, dataset):
+        whole_dataset = []
+        for index in range(len(dataset.filename)):
+            print(index)
+            transform = transforms.Compose([
+                # transforms.ToTensor(),
+                transforms.CenterCrop(140),
+                transforms.Resize(64)])
+
+            X = PIL.Image.open(os.path.join(dataset.root, dataset.base_folder, "img_align_celeba", dataset.filename[index]))
+            if transform is not None:
+                X = transform(X)
+            whole_dataset.append(np.transpose(np.asanyarray(X), (2, 0, 1)))
+            # X.save(os.path.join(dataset.root, dataset.base_folder, "img_align_celeba", dataset.filename[index]), "JPEG")
+
+        # return (train, valid), test
+        whole_dataset = np.stack(whole_dataset, axis=0)
+        print(whole_dataset.shape)
+        h5f = h5py.File('data.h5', 'w')
+        h5f.create_dataset('data', data=whole_dataset)
+        h5f.close()
+
+    def preprocessing_(self, data):
+        return data
+
+    def seperate_data_from_label(self, train_dataset, test_dataset):
+        return train_dataset, (None, None), test_dataset, None
 
 class fashion_mnist_loader(base_load_data):
     def __init__(self, args, use_fixed_validation=False, no_binarization=False):
@@ -177,6 +273,12 @@ def load_dataset(args, training_num=None, use_fixed_validation=False, no_binariz
         args.input_type = 'continuous'
         args.lambd = 0.05
         train_loader, val_loader, test_loader, args = cifar10_loader(args).load_dataset(**kwargs)
+    elif args.dataset_name == 'CelebA':
+        args.training_set_size = 162770
+        args.input_size = [3, 64, 64]
+        args.input_type = 'continuous'
+        args.lambd = 0.0001
+        train_loader, val_loader, test_loader, args = celebA_loader(args).load_dataset(**kwargs)
     else:
         raise Exception('Wrong name of the dataset!')
     print('train size', len(train_loader.dataset))

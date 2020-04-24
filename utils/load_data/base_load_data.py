@@ -4,6 +4,7 @@ import torch.utils.data as data_utils
 import numpy as np
 from abc import ABC, abstractmethod
 from utils.utils import scaled_logit
+from utils.plot_images import imshow
 
 class base_load_data(ABC):
     def __init__(self, args, use_fixed_validation=False, no_binarization=False):
@@ -23,19 +24,14 @@ class base_load_data(ABC):
         y_test = test_dataset.test_labels.numpy().astype(int)
         return x_train, y_train, x_test, y_test
 
-    def preprocessing_(self, x_train, x_test):
+    def preprocessing_(self, data):
         if self.args.input_type == 'gray' or self.args.input_type == 'continuous':
-            x_train = np.clip((x_train + 0.5) / 256., 0., 1.)
-            x_test = np.clip((x_test + 0.5) / 256., 0., 1.)
+            data = np.clip((data + 0.5) / 256., 0., 1.)
             if self.args.use_logit:
-                x_train = scaled_logit(x_train, self.args.lambd)
-                x_test = scaled_logit(x_test, self.args.lambd)
-
+                data = scaled_logit(data, self.args.lambd)
         else:
-            x_train = x_train / 255.
-            x_test = x_test / 255.
-
-        return x_train, x_test
+            data = data / 255.
+        return np.reshape(data, (-1, np.prod(self.args.input_size)))
 
     def vampprior_initialization(self, x_train, init_mean, init_std):
         if self.args.use_training_data_init == 1:
@@ -76,39 +72,38 @@ class base_load_data(ABC):
         # start processing
         train, test = self.obtain_data()
         x_train, y_train, x_test, y_test = self.seperate_data_from_label(train, test)
-        x_train, x_test = self.preprocessing_(x_train, x_test)
 
-        if self.use_fixed_validation is False:
-            permutation = np.arange(len(x_train))
-            np.random.shuffle(permutation)
-            x_train = x_train[permutation]
-            y_train = y_train[permutation]
-
-        if self.args.dataset_name == 'static_mnist':
+        if self.args.dataset_name == 'static_mnist' or self.args.dataset_name=='CelebA':
             x_train, x_val = x_train
             y_train, y_val = y_train
         else:
+            if self.use_fixed_validation is False:
+                permutation = np.arange(len(x_train))
+                np.random.shuffle(permutation)
+                x_train = x_train[permutation]
+                y_train = y_train[permutation]
+
             x_val = x_train[self.train_num:]
             y_val = y_train[self.train_num:]
             x_train = x_train[:self.train_num]
             y_train = y_train[:self.train_num]
 
+        x_train = self.preprocessing_(x_train)
+        x_test = self.preprocessing_(x_test)
+        x_val = self.preprocessing_(x_val)
+
         # imshow(torchvision.utils.make_grid(torch.from_numpy(x_val[:50].reshape(-1, *self.args.input_size))))
         # plt.axis('off')
         # plt.show()
 
-        x_train = np.reshape(x_train, (-1, np.prod(self.args.input_size)))
-        x_val = np.reshape(x_val, (-1, np.prod(self.args.input_size)))
-
-        x_test = np.reshape(x_test, (-1, np.prod(self.args.input_size)))
 
         if self.args.dynamic_binarization and self.no_binarization is False:
             x_val, x_test = self.binarize(x_val, x_test)
 
         print("data stats:")
-        print(len(x_train), len(y_train))
-        print(len(x_val), len(y_val))
-        print(len(x_test), len(y_test))
+        print(len(x_train))
+        print(len(x_val))
+        print(len(x_test))
 
         train_loader, val_loader, test_loader, = self.post_processing(x_train, x_val, x_test,
                                                                  y_train, y_val, y_test, **kwargs)

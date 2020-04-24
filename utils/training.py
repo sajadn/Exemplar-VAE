@@ -27,7 +27,7 @@ def train_one_epoch(epoch, args, train_loader, model, optimizer):
         cache = None
 
     for batch_idx, (data, indices, target) in enumerate(train_loader):
-        data, indices, target = data.to(args.device), indices.to(args.device), target.to(args.device)
+        data, indices, target = data.to(args.device).squeeze(), indices.to(args.device), target.to(args.device)
         if args.dynamic_binarization:
             x = torch.bernoulli(data)
         elif args.use_logit:
@@ -42,7 +42,6 @@ def train_one_epoch(epoch, args, train_loader, model, optimizer):
         loss, RE, KL = model.calculate_loss(x, beta, average=True, cache=cache, dataset=train_loader.dataset)
         loss.backward()
         optimizer.step()
-
 
         with torch.no_grad():
             train_loss += loss.data.item()

@@ -158,8 +158,8 @@ class BaseModel(nn.Module, ABC):
             z_sample_rand = self.reparameterize(z_sample_gen_mean, z_sample_gen_logvar)
             z_sample_rand = z_sample_rand.to(self.args.device)
         elif self.args.prior == 'exemplar_prior':
-            rand_indices = torch.randint(low=0, high=self.args.training_set_size, size=(N,))
-            exemplars = dataset.tensors[0][rand_indices]
+            rand_indices, _ = torch.sort(torch.randint(low=0, high=self.args.training_set_size, size=(N,)))
+            exemplars = dataset[rand_indices.detach().cpu().numpy()][0]
             z_sample_gen_mean, z_sample_gen_logvar = self.q_z(exemplars.to(self.args.device), prior=True)
             z_sample_rand = self.reparameterize(z_sample_gen_mean, z_sample_gen_logvar)
             z_sample_rand = z_sample_rand.to(self.args.device)
@@ -196,7 +196,7 @@ class BaseModel(nn.Module, ABC):
         return variance[0]*torch.ones(shape).to(self.args.device)
 
     def q_z(self, x, z1=None, prior=False):
-        if 'conv' in self.args.model_name:
+        if 'conv' in self.args.model_name or self.args.model_name=='CelebA':
             x = x.view(-1, *self.args.input_size)
         h = self.q_z_layers(x)
         if self.args.model_name == 'convhvae_2level':
@@ -216,7 +216,7 @@ class BaseModel(nn.Module, ABC):
     def cache_z(self, dataset, prior=True, cuda=True):
         cached_z = []
         cached_log_var = []
-        caching_batch_size = 10000
+        caching_batch_size = 5000
         num_batchs = math.ceil(len(dataset) / caching_batch_size)
         for i in range(num_batchs):
             if len(dataset[0]) == 3:
@@ -236,7 +236,7 @@ class BaseModel(nn.Module, ABC):
     def get_exemplar_set(self, z_mean, z_log_var, dataset, cache, x_indices):
         if self.args.approximate_prior is False:
             exemplars_indices = torch.randperm(self.args.training_set_size)[:self.args.number_components]
-            exemplars_z, log_variance = self.q_z(dataset.tensors[0][exemplars_indices].to(self.args.device), prior=True)
+            exemplars_z, log_variance = self.q_z(dataset[exemplars_indices][0].to(self.args.device), prior=True)
             exemplar_set = (exemplars_z, log_variance, exemplars_indices.to(self.args.device))
         else:
             exemplar_set = self.get_approximate_nearest_exemplars(
@@ -254,8 +254,8 @@ class BaseModel(nn.Module, ABC):
         _, nearest_indices = pairwise_distance(z, sub_cache) \
             .topk(k=self.args.approximate_k, largest=False, dim=1)
         nearest_indices = torch.unique(nearest_indices.view(-1))
-        exemplars_indices = exemplars_indices[nearest_indices].view(-1)
-        exemplars = dataset.tensors[0][exemplars_indices].to(self.args.device)
+        exemplars_indices, _ = torch.sort(exemplars_indices[nearest_indices].view(-1))
+        exemplars = dataset[exemplars_indices.detach().cpu().numpy()][0].to(self.args.device)
         exemplars_z, log_variance = self.q_z(exemplars, prior=True)
         cached_z[exemplars_indices] = exemplars_z
         exemplar_set = (exemplars_z, log_variance, exemplars_indices)
