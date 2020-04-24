@@ -11,10 +11,10 @@ def importing_model(args):
         from models.convHVAE_2level import VAE
     elif args.model_name == 'new_vae':
         from models.new_vae import VAE
-    elif args.model_name == 'fully_conv':
-        from models.cifar import VAE
-    elif args.model_name == 'fully_hconv':
-        from models.fully_hconv import VAE
+    elif args.model_name == 'conv_cifar':
+        from models.conv_cifar import VAE
+    elif args.model_name == 'conv_resnet_vae':
+        from models.conv_resnet_vae import VAE
     elif args.model_name == 'CelebA':
         from models.celebA import VAE
     else:

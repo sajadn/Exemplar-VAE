@@ -27,7 +27,7 @@ class VAE(AbsModel):
                 return x + self.f(x)
 
         self.train_data_size = train_data_size
-        self.cs = 100
+        self.cs = 4
         self.bottleneck = self.args.bottleneck
 
         self.q_z_layers = nn.Sequential(
@@ -38,11 +38,11 @@ class VAE(AbsModel):
 
         self.q_z_mean = nn.Sequential(
             nn.ELU(),
-            weight_norm(nn.Conv2d(in_channels=self.cs*2, out_channels=self.bottleneck, kernel_size=3, stride=1, padding=1)))
+            weight_norm(nn.Conv2d(in_channels=self.cs, out_channels=self.bottleneck, kernel_size=3, stride=1, padding=1)))
 
         self.q_z_logvar = nn.Sequential(
             nn.ELU(),
-            weight_norm(nn.Conv2d(in_channels=self.cs*2, out_channels=self.bottleneck, kernel_size=3, stride=1, padding=1)))
+            weight_norm(nn.Conv2d(in_channels=self.cs, out_channels=self.bottleneck, kernel_size=3, stride=1, padding=1)))
 
         self.p_x_layers = nn.Sequential(
             nn.Upsample(scale_factor=2),
