@@ -81,9 +81,10 @@ def calculate_likelihood(args, model, loader, S=5000, exemplars_embedding=None):
     t0 = time.time()
     for index, data in enumerate(auxilary_loader):
         if len(data) == 3:
-            data, _, _ = data.to(args.device)
+            data, _, _ = data
         else:
-            data, _ = data.to(args.device)
+            data, _ = data
+        data = data.to(args.device)
         if index % 100 == 0:
             print(time.time() - t0)
             t0 = time.time()
