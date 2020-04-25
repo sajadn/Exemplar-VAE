@@ -8,7 +8,7 @@ import PIL
 import h5py
 import torch
 import torch.utils.data as data_utils
-
+import zipfile
 
 class dynamic_mnist_loader(base_load_data):
     def __init__(self, args, use_fixed_validation=False, no_binarization=False):
@@ -51,6 +51,13 @@ class celebA_loader(base_load_data):
         super(celebA_loader, self).__init__(args, use_fixed_validation, no_binarization=no_binarization)
 
     def obtain_data(self):
+        zip_file = 'CelebA.zip'
+        if not os.path.exists(os.path.join(os.path.join('datasets', self.args.dataset_name), 'train.h5')):
+            url = "http://www.cs.toronto.edu/~sajadn/CelebA.zip"
+            wget.download(url, zip_file)
+            with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+                zip_ref.extractall(os.path.join(os.path.join('datasets', self.args.dataset_name)))
+
         train = h5dataset(os.path.join(os.path.join('datasets', self.args.dataset_name), 'train.h5'), self.args)
         valid = h5dataset(os.path.join(os.path.join('datasets', self.args.dataset_name), 'valid.h5'), self.args)
         test = h5dataset(os.path.join(os.path.join('datasets', self.args.dataset_name), 'test.h5'), self.args)
