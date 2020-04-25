@@ -46,3 +46,9 @@ def scaled_logit_torch(x, lambd):
 def inverse_scaled_logit(x, lambd):
     sigmoid = torch.nn.Sigmoid()
     return (sigmoid(x) - lambd)/(1-2*lambd)
+
+
+def reparameterize(mu, logvar):
+    std = logvar.mul(0.5).exp_()
+    eps = mu.new_empty(size=std.shape).normal_()
+    return eps.mul(std).add_(mu)

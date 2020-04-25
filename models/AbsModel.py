@@ -6,18 +6,11 @@ from models.BaseModel import BaseModel
 from utils.distributions import log_normal_diag
 from utils.utils import inverse_scaled_logit
 from utils.plot_images import imshow
+from utils.utils import reparameterize
 
 class AbsModel(BaseModel):
     def __init__(self, args):
         super(AbsModel, self).__init__(args)
-
-    def kl_loss(self, latent_stats, exemplars_embedding, dataset, cache, x_indices):
-        z_q, z_q_mean, z_q_logvar = latent_stats
-        if exemplars_embedding is None and self.args.prior == 'exemplar_prior':
-            exemplars_embedding = self.get_exemplar_set(z_q_mean, z_q_logvar, dataset, cache, x_indices)
-        log_p_z = self.log_p_z(z=(z_q, x_indices), exemplars_embedding=exemplars_embedding)
-        log_q_z = log_normal_diag(z_q, z_q_mean, z_q_logvar, dim=1)
-        return -(log_p_z - log_q_z)
 
     def generate_x_from_z(self, z, with_reparameterize=True):
         generated_x, _ = self.p_x(z)
@@ -45,9 +38,8 @@ class AbsModel(BaseModel):
         return x_mean.reshape(-1, np.prod(self.args.input_size)),\
                x_logvar.reshape(-1, np.prod(self.args.input_size))
 
-    def forward(self, x, label=0, num_categories=10):
+    def forward(self, x):
         z_q_mean, z_q_logvar = self.q_z(x)
-
-        z_q = self.reparameterize(z_q_mean, z_q_logvar)
+        z_q = reparameterize(z_q_mean, z_q_logvar)
         x_mean, x_logvar = self.p_x(z_q)
-        return x_mean, x_logvar, (z_q, z_q_mean, z_q_logvar)
+        return x_mean, x_logvar, [(z_q, z_q_mean, z_q_logvar)]

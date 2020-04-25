@@ -12,6 +12,8 @@ from utils.distributions import pairwise_distance
 from utils.distributions import log_bernoulli, log_normal_diag, log_normal_standard, log_logistic_256
 from abc import ABC, abstractmethod
 from torch import _weight_norm
+from utils.utils import reparameterize
+
 
 class BaseModel(nn.Module, ABC):
     def __init__(self, args):
@@ -47,9 +49,30 @@ class BaseModel(nn.Module, ABC):
     def create_model(self, args):
         pass
 
-    @abstractmethod
-    def kl_loss(self, latent_stats, exemplars_embeddin, dataset, cache, x_indices):
-        pass
+    def kl_loss(self, latent_stats, exemplars_embedding, dataset, cache, x_indices):
+        kl = 0
+        for i in range(len(latent_stats)-1):
+            z_q, z_q_mean, z_q_logvar, z_p_mean, z_p_logvar = latent_stats[i]
+            log_p_z = log_normal_diag(z_q.view(-1, self.args.z1_size),
+                                       z_p_mean.view(-1, self.args.z1_size),
+                                       z_p_logvar.view(-1, self.args.z1_size), dim=1)
+            log_q_z = log_normal_diag(z_q.view(-1, self.args.z1_size),
+                                      z_q_mean.view(-1, self.args.z1_size),
+                                      z_q_logvar.view(-1, self.args.z1_size), dim=1)
+            kl += -(log_p_z-log_q_z)
+        z_q, z_q_mean, z_q_logvar = latent_stats[-1]
+
+        if exemplars_embedding is None and self.args.prior == 'exemplar_prior':
+            exemplars_embedding = self.get_exemplar_set(z_q_mean, z_q_logvar, dataset, cache, x_indices)
+
+        log_p_z = self.log_p_z(z=(z_q, x_indices), exemplars_embedding=exemplars_embedding)
+        log_q_z = log_normal_diag(z_q.view(-1, self.args.z2_size),
+                                   z_q_mean.view(-1, self.args.z2_size),
+                                   z_q_logvar.view(-1, self.args.z2_size), dim=1)
+        kl += -(log_p_z - log_q_z)
+        return kl
+
+
 
     def reconstruction_loss(self, x, x_mean, x_logvar):
         if self.args.input_type == 'binary':
@@ -75,11 +98,6 @@ class BaseModel(nn.Module, ABC):
             KL = torch.mean(KL)
 
         return loss, RE, KL
-
-    def reparameterize(self, mu, logvar):
-        std = logvar.mul(0.5).exp_()
-        eps = mu.new_empty(size=std.shape).normal_()
-        return eps.mul(std).add_(mu)
 
     def log_p_z_vampprior(self, z, exemplars_embedding):
         if exemplars_embedding is None:
@@ -155,13 +173,13 @@ class BaseModel(nn.Module, ABC):
         elif self.args.prior == 'vampprior':
             means = self.means(self.idle_input)[0:N]
             z_sample_gen_mean, z_sample_gen_logvar = self.q_z(means)
-            z_sample_rand = self.reparameterize(z_sample_gen_mean, z_sample_gen_logvar)
+            z_sample_rand = reparameterize(z_sample_gen_mean, z_sample_gen_logvar)
             z_sample_rand = z_sample_rand.to(self.args.device)
         elif self.args.prior == 'exemplar_prior':
             rand_indices, _ = torch.sort(torch.randint(low=0, high=self.args.training_set_size, size=(N,)))
             exemplars = dataset[rand_indices.detach().cpu().numpy()][0]
             z_sample_gen_mean, z_sample_gen_logvar = self.q_z(exemplars.to(self.args.device), prior=True)
-            z_sample_rand = self.reparameterize(z_sample_gen_mean, z_sample_gen_logvar)
+            z_sample_rand = reparameterize(z_sample_gen_mean, z_sample_gen_logvar)
             z_sample_rand = z_sample_rand.to(self.args.device)
         return z_sample_rand
 
@@ -169,7 +187,7 @@ class BaseModel(nn.Module, ABC):
         pseudo, log_var = self.q_z(reference_image.to(self.args.device), prior=True)
         pseudo = pseudo.unsqueeze(1).expand(-1, N, -1).reshape(-1, pseudo.shape[-1])
         log_var = log_var[0].unsqueeze(0).expand(len(pseudo), -1)
-        z_sample_rand = self.reparameterize(pseudo, log_var)
+        z_sample_rand = reparameterize(pseudo, log_var)
         z_sample_rand = z_sample_rand.reshape(-1, N, pseudo.shape[1])
         return z_sample_rand
 
@@ -205,8 +223,6 @@ class BaseModel(nn.Module, ABC):
         if prior is True:
             if self.args.prior == 'exemplar_prior':
                 z_q_logvar = self.prior_log_variance * torch.ones((x.shape[0], self.args.z1_size)).to(self.args.device)
-                if self.args.model_name == 'newconvhvae_2level':
-                    z_q_logvar = z_q_logvar.reshape(-1, 4, 4, 4)
             else:
                 z_q_logvar = self.q_z_logvar(h)
         else:
