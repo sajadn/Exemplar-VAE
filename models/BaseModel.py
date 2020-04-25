@@ -216,7 +216,7 @@ class BaseModel(nn.Module, ABC):
     def cache_z(self, dataset, prior=True, cuda=True):
         cached_z = []
         cached_log_var = []
-        caching_batch_size = 5000
+        caching_batch_size = 10000
         num_batchs = math.ceil(len(dataset) / caching_batch_size)
         for i in range(num_batchs):
             if len(dataset[0]) == 3:
