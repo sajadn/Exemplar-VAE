@@ -2,59 +2,76 @@ from __future__ import print_function
 import torch
 import torch.utils.data
 import torch.nn as nn
-from models.AbsHUpModel import AbsUpModel
+from models.AbsModel import AbsModel
 from torch.nn.utils import weight_norm
+from utils.utils import reparameterize
+import numpy as np
+from utils.utils import inverse_scaled_logit
 
-class VAE(AbsUpModel):
+
+class block(nn.Module):
+    def __init__(self, input_size, output_size, stride=1, kernel=3, padding=1, bottleneck=32):
+        super(block, self).__init__()
+        self.bottleneck = bottleneck
+        self.conv1_forward = weight_norm(
+            nn.Conv2d(input_size, output_size + self.bottleneck, kernel_size=kernel, stride=stride,
+                      padding=padding,
+                      bias=True))
+        self.conv2_forward = weight_norm(
+            nn.Conv2d(output_size, output_size, kernel_size=kernel, stride=stride, padding=padding,
+                      bias=True))
+        self.conv1_backward = weight_norm(
+            nn.Conv2d(input_size, output_size + self.bottleneck, kernel_size=kernel, stride=stride,
+                      padding=padding,
+                      bias=True))
+        self.conv2_backward = weight_norm(
+            nn.Conv2d(output_size, output_size, kernel_size=kernel, stride=stride, padding=padding,
+                      bias=True))
+        self.activation = torch.nn.ELU()
+
+    def forward(self, x):
+        out1 = self.conv1_forward(self.activation(x))
+        q_z_mean = out1[:, -2 * self.bottleneck:-self.bottleneck, :, :]
+        q_z_logvar = out1[:, -self.bottleneck:, :, :]
+        self.q_z = reparameterize(q_z_mean, q_z_logvar)
+        return self.conv2_forward(self.activation(torch.cat((out1[:, :-2 * self.bottleneck, :, :],
+                                                             self.q_z),
+                                                  dim=1))), (self.q_z, q_z_mean, q_z_logvar)
+
+    def backward(self, x):
+        out1 = self.conv1_backward(self.activation(x))
+        p_z_mean = out1[:, -2 * self.bottleneck:-self.bottleneck, :, :]
+        p_z_logvar = out1[:, -self.bottleneck:, :, :]
+        if self.q_z is not None:
+            return self.conv2_backward(
+                self.activation(torch.cat((out1[:, :-2 * self.bottleneck, :, :], self.q_z), dim=1))), \
+                   (p_z_mean, p_z_logvar)
+        else:
+            return self.conv2_backward(
+                self.activation(torch.cat((out1[:, :-2 * self.bottleneck, :, :], reparameterize(p_z_mean, p_z_logvar)), dim=1))), \
+                            (p_z_mean, p_z_logvar)
+
+
+class VAE(AbsModel):
     def __init__(self, args):
         super(VAE, self).__init__(args)
 
     def create_model(self, args, train_data_size=None):
-        class block(nn.Module):
-            def __init__(self, input_size, output_size, stride=1, kernel=3, padding=1):
-                super(block, self).__init__()
-                self.normalization = nn.BatchNorm2d(input_size)
-                self.conv1 = weight_norm(nn.Conv2d(input_size, output_size, kernel_size=kernel, stride=stride, padding=padding,
-                                       bias=True))
-                self.conv2 = weight_norm(
-                    nn.Conv2d(output_size, output_size, kernel_size=kernel, stride=stride, padding=padding,
-                              bias=True))
-                self.activation = torch.nn.ELU()
-                self.f = torch.nn.Sequential(self.activation, self.conv1, self.activation, self.conv2)
-
-            def forward(self, x):
-                return x + self.f(x)
 
         self.train_data_size = train_data_size
-        self.cs = 4
+        self.cs = 100
         self.bottleneck=self.args.bottleneck
 
-        self.q_z1_layers_x = nn.Sequential(
-            nn.ELU(),
-            weight_norm(nn.Conv2d(in_channels=self.args.input_size[0],
-                                  out_channels=self.cs,
-                                  kernel_size=3, stride=2, padding=1)),
-            *[block(input_size=self.cs, output_size=self.cs, stride=1, kernel=3, padding=1) for _ in range(self.args.rs_blocks)]
-        )
+        self.down_sample = nn.Sequential(
+                            nn.ELU(),
+                            weight_norm(nn.Conv2d(in_channels=self.args.input_size[0],
+                                  out_channels=self.cs, kernel_size=3, stride=2, padding=1)))
 
-        self.q_z1_mean = nn.Sequential(
-            nn.ELU(),
-            weight_norm(nn.Conv2d(in_channels=self.cs, out_channels=self.bottleneck, kernel_size=3, stride=1, padding=1)),
-        )
+        self.up_sample = nn.Upsample(scale_factor=2)
 
-        self.q_z1_logvar = nn.Sequential(
-            nn.ELU(),
-            weight_norm(nn.Conv2d(in_channels=self.cs, out_channels=self.bottleneck, kernel_size=3, stride=1, padding=1)),
-        )
-
-        self.q_z_first_layer = nn.Sequential(
-            nn.ELU(),
-            weight_norm(nn.Conv2d(in_channels=self.cs, out_channels=self.cs-self.bottleneck, kernel_size=3, stride=1, padding=1)),
-        )
-
-        self.q_z_layers = nn.Sequential(
-            *[block(input_size=self.cs, output_size=self.cs, stride=1, kernel=3, padding=1) for _ in range(self.args.rs_blocks)]
-        )
+        self.layers = nn.ModuleList([
+            *[block(input_size=self.cs, output_size=self.cs, stride=1, kernel=3, padding=1, bottleneck=self.bottleneck)
+              for _ in range(self.args.rs_blocks)]])
 
         self.q_z_mean = nn.Sequential(nn.ELU(),
                                       weight_norm(nn.Conv2d(in_channels=self.cs,
@@ -66,40 +83,85 @@ class VAE(AbsUpModel):
                                                             out_channels=self.bottleneck,
                                                             kernel_size=3,
                                                             stride=1, padding=1)))
-        self.p_z1_layers_z2 = nn.Sequential(
-            # weight_norm(nn.Linear(self.args.z1_size, self.args.hidden_size)),
-            nn.ELU(),
-            weight_norm(nn.Conv2d(in_channels=self.bottleneck, out_channels=self.cs, kernel_size=3, stride=1, padding=1)),
-            *[block(input_size=self.cs, output_size=self.cs, stride=1, kernel=3, padding=1) for _ in range(self.args.rs_blocks)]
-        )
-
-        self.p_z1_mean = nn.Sequential(
-            nn.ELU(),
-            weight_norm(
-                nn.Conv2d(in_channels=self.cs, out_channels=self.bottleneck, kernel_size=3, stride=1, padding=1)),
-        )
-
-        self.p_z1_logvar = nn.Sequential(
-            nn.ELU(),
-            weight_norm(
-                nn.Conv2d(in_channels=self.cs, out_channels=self.bottleneck, kernel_size=3, stride=1, padding=1)),
-        )
-
-        self.p_x_first_z1 = nn.Sequential(
-            nn.ELU(),
-            weight_norm(nn.Conv2d(in_channels=self.cs, out_channels=self.cs - self.bottleneck, kernel_size=3, stride=1, padding=1)),
-        )
-
-        self.p_x_layers_z1 = nn.Sequential(
-            # block(input_size=self.cs*2, output_size=self.cs*2, stride=1, kernel=3, padding=1),
-            nn.Upsample(scale_factor=2),
-            *[block(input_size=self.cs, output_size=self.cs, stride=1, kernel=3, padding=1) for _ in range(self.args.rs_blocks)]
-        )
 
         self.p_x_mean = nn.Sequential(nn.ELU(),
                                       weight_norm(nn.Conv2d(in_channels=self.cs,
                                                             out_channels=self.args.input_size[0],
-                                                            kernel_size=3, stride=1, padding=1))
-                                      )
+                                                            kernel_size=3, stride=1, padding=1)))
+        self.p_x_first = nn.Sequential(nn.ELU(),
+                            weight_norm(nn.Conv2d(in_channels=self.bottleneck,
+                                            out_channels=self.cs,
+                                            kernel_size=3,
+                                            stride=1, padding=1)))
 
+    def generate_x_from_z(self, z, with_reparameterize=True):
+        generated_x, _, _ = self.p_x(z)
+        try:
+            if self.args.use_logit is True:
+                return torch.floor(inverse_scaled_logit(generated_x, self.args.lambd)*256).int()
+            else:
+                return generated_x
+        except Exception as e:
+            print(e)
+            return generated_x
 
+    def q_z_layers(self, x):
+        x = self.down_sample(x)
+        qs = []
+        for l in self.layers:
+            x, q_stat = l(x)
+            qs.append(q_stat)
+        return x, qs
+
+    def p_x_layers(self, x):
+        ps = []
+        x = self.p_x_first(x)
+        for l in self.layers[::-1]:
+            x, p_stat = l.backward(x)
+            ps.append(p_stat)
+        x = self.up_sample(x)
+        return x, ps
+
+    def p_x(self, z):
+        if 'conv' in self.args.model_name:
+            z = z.reshape(-1, self.bottleneck, self.args.input_size[1]//2, self.args.input_size[1]//2)
+        z, ps = self.p_x_layers(z)
+        x_mean = self.p_x_mean(z)
+        if self.args.input_type == 'binary':
+            x_logvar = torch.zeros(1, np.prod(self.args.input_size))
+        else:
+            if self.args.use_logit is False:
+                x_mean = torch.clamp(x_mean, min=0.+1./512., max=1.-1./512.)
+            reshaped_var = self.decoder_logstd.unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
+            x_logvar = reshaped_var*x_mean.new_ones(size=x_mean.shape)
+        return x_mean.reshape(-1, np.prod(self.args.input_size)),\
+               x_logvar.reshape(-1, np.prod(self.args.input_size)), ps
+
+    def q_z(self, x, z1=None, prior=False):
+        if 'conv' in self.args.model_name or self.args.model_name=='CelebA':
+            x = x.view(-1, *self.args.input_size)
+        h, qs = self.q_z_layers(x)
+        if self.args.model_name == 'convhvae_2level':
+            h = h.view(x.size(0), -1)
+        z_q_mean = self.q_z_mean(h)
+        if prior is True:
+            if self.args.prior == 'exemplar_prior':
+                z_q_logvar = self.prior_log_variance * torch.ones((x.shape[0], self.args.z1_size)).to(self.args.device)
+            else:
+                z_q_logvar = self.q_z_logvar(h)
+            return z_q_mean.reshape(-1, self.args.z1_size), z_q_logvar.reshape(-1, self.args.z1_size)
+        else:
+            z_q_logvar = self.q_z_logvar(h)
+            return z_q_mean.reshape(-1, self.args.z1_size), z_q_logvar.reshape(-1, self.args.z1_size), qs
+
+    def forward(self, x):
+        z_q_mean, z_q_logvar, qs = self.q_z(x)
+        z_q = reparameterize(z_q_mean, z_q_logvar)
+        x_mean, x_logvar, ps = self.p_x(z_q)
+
+        z_stats = []
+        for i in range(len(qs)):
+            z_stats.append((*qs[i], *ps[i]))
+
+        z_stats.append((z_q, z_q_mean, z_q_logvar))
+        return x_mean, x_logvar, z_stats

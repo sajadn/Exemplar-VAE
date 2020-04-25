@@ -27,7 +27,7 @@ class VAE(AbsModel):
                 return x + self.f(x)
 
         self.train_data_size = train_data_size
-        self.cs = 4
+        self.cs = 100
         self.bottleneck = self.args.bottleneck
 
         self.q_z_layers = nn.Sequential(
