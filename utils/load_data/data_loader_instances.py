@@ -9,6 +9,8 @@ import h5py
 import torch
 import torch.utils.data as data_utils
 import zipfile
+from utils.utils import scaled_logit
+
 
 class dynamic_mnist_loader(base_load_data):
     def __init__(self, args, use_fixed_validation=False, no_binarization=False):
@@ -39,8 +41,8 @@ class h5dataset(torch.utils.data.Dataset):
     def preprocess(self, data):
         if self.args.input_type == 'gray' or self.args.input_type == 'continuous':
             data = np.clip((data + 0.5) / 256., 0., 1.)
-            # if self.args.use_logit:
-            #     data = scaled_logit(data, self.args.lambd)
+            if self.args.use_logit:
+                data = scaled_logit(data, self.args.lambd)
         else:
             data = data / 255.
         return  torch.from_numpy(np.reshape(data, (-1, np.prod(self.args.input_size))))
