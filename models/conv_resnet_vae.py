@@ -43,9 +43,11 @@ class block(nn.Module):
         p_z_mean = out1[:, -2 * self.bottleneck:-self.bottleneck, :, :]
         p_z_logvar = out1[:, -self.bottleneck:, :, :]
         if self.q_z is not None:
-            return self.conv2_backward(
+            out = self.conv2_backward(
                 self.activation(torch.cat((out1[:, :-2 * self.bottleneck, :, :], self.q_z), dim=1))), \
                    (p_z_mean, p_z_logvar)
+            self.q_z = None
+            return out
         else:
             return self.conv2_backward(
                 self.activation(torch.cat((out1[:, :-2 * self.bottleneck, :, :], reparameterize(p_z_mean, p_z_logvar)), dim=1))), \
@@ -161,7 +163,7 @@ class VAE(AbsModel):
 
         z_stats = []
         for i in range(len(qs)):
-            z_stats.append((*qs[i], *ps[i]))
+            z_stats.append((*qs[i], *ps.pop()))
 
         z_stats.append((z_q, z_q_mean, z_q_logvar))
         return x_mean, x_logvar, z_stats
