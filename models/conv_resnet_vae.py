@@ -28,15 +28,21 @@ class block(nn.Module):
             nn.Conv2d(output_size, output_size, kernel_size=kernel, stride=stride, padding=padding,
                       bias=True))
         self.activation = torch.nn.ELU()
+        self.q_z = None
 
-    def forward(self, x):
+    def forward(self, x, prior=False):
         out1 = self.conv1_forward(self.activation(x))
         q_z_mean = out1[:, -2 * self.bottleneck:-self.bottleneck, :, :]
         q_z_logvar = out1[:, -self.bottleneck:, :, :]
-        self.q_z = reparameterize(q_z_mean, q_z_logvar)
+        if prior is False:
+            q_z = reparameterize(q_z_mean, q_z_logvar)
+            self.q_z = q_z
+        else:
+            q_z = q_z_mean
+
         return self.conv2_forward(self.activation(torch.cat((out1[:, :-2 * self.bottleneck, :, :],
-                                                             self.q_z),
-                                                  dim=1))), (self.q_z, q_z_mean, q_z_logvar)
+                                                             q_z),
+                                                  dim=1))), (q_z, q_z_mean, q_z_logvar)
 
     def backward(self, x):
         out1 = self.conv1_backward(self.activation(x))
@@ -105,11 +111,11 @@ class VAE(AbsModel):
             print(e)
             return generated_x
 
-    def q_z_layers(self, x):
+    def q_z_layers(self, x, prior=False):
         x = self.down_sample(x)
         qs = []
         for l in self.layers:
-            x, q_stat = l(x)
+            x, q_stat = l(x, prior=prior)
             qs.append(q_stat)
         return x, qs
 
@@ -140,7 +146,7 @@ class VAE(AbsModel):
     def q_z(self, x, z1=None, prior=False):
         if 'conv' in self.args.model_name or self.args.model_name=='CelebA':
             x = x.view(-1, *self.args.input_size)
-        h, qs = self.q_z_layers(x)
+        h, qs = self.q_z_layers(x, prior=prior)
         if self.args.model_name == 'convhvae_2level':
             h = h.view(x.size(0), -1)
         z_q_mean = self.q_z_mean(h)
