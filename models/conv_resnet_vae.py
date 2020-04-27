@@ -136,7 +136,7 @@ class VAE(AbsModel):
         if 'conv' in self.args.model_name:
             z = z.reshape(-1, self.bottleneck, self.args.input_size[1]//2, self.args.input_size[1]//2)
         z, ps = self.p_x_layers(z)
-        x_mean = self.p_x_mean(z)
+        x_mean = self.args.resnet_coeff*self.p_x_mean(z)
         if self.args.input_type == 'binary':
             x_logvar = torch.zeros(1, np.prod(self.args.input_size))
         else:
