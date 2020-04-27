@@ -13,6 +13,8 @@ def importing_model(args):
         from models.new_vae import VAE
     elif args.model_name == 'conv_cifar':
         from models.conv_cifar import VAE
+    elif args.model_name == 'fully_hconv':
+        from models.fully_hconv import VAE
     elif args.model_name == 'conv_resnet_vae':
         from models.conv_resnet_vae import VAE
     elif args.model_name == 'CelebA':

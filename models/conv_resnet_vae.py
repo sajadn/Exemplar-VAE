@@ -40,7 +40,7 @@ class block(nn.Module):
         else:
             q_z = q_z_mean
 
-        return self.conv2_forward(self.activation(torch.cat((out1[:, :-2 * self.bottleneck, :, :],
+        return x+self.args.resnet_coeff*self.conv2_forward(self.activation(torch.cat((out1[:, :-2 * self.bottleneck, :, :],
                                                              q_z),
                                                   dim=1))), (q_z, q_z_mean, q_z_logvar)
 
@@ -49,13 +49,13 @@ class block(nn.Module):
         p_z_mean = out1[:, -2 * self.bottleneck:-self.bottleneck, :, :]
         p_z_logvar = out1[:, -self.bottleneck:, :, :]
         if self.q_z is not None:
-            out = self.conv2_backward(
+            out = x + self.args.resnet_coeff*self.conv2_backward(
                 self.activation(torch.cat((out1[:, :-2 * self.bottleneck, :, :], self.q_z), dim=1))), \
                    (p_z_mean, p_z_logvar)
             self.q_z = None
             return out
         else:
-            return self.conv2_backward(
+            return x + self.args.resnet_coeff*self.conv2_backward(
                 self.activation(torch.cat((out1[:, :-2 * self.bottleneck, :, :], reparameterize(p_z_mean, p_z_logvar)), dim=1))), \
                             (p_z_mean, p_z_logvar)
 

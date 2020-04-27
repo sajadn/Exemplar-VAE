@@ -56,6 +56,7 @@ def generate_fancy_grid(config, dir, reference_data, generated, col_num=4, row_n
             grid = np.clip(grid, 0, 255)
             grid = grid.astype(np.uint8)
         else:
+            grid = np.squeeze(grid)
             grid = np.clip(grid, 0, 1)
 
         plt.imsave(arr=grid,

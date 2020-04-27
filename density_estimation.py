@@ -242,7 +242,7 @@ def run(args, kwargs):
 
     if args.data_dependent_init:
         with torch.no_grad():
-            model.data_dependent_init(train_loader.dataset.tensors[0][:1000].cuda())
+            model.data_dependent_init(train_loader.dataset[:1000][0].cuda())
     run_density_estimation(args, train_loader, val_loader, test_loader, model, optimizer, dir, model_name = args.model_name)
 
 

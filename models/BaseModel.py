@@ -202,7 +202,7 @@ class BaseModel(nn.Module, ABC):
     def reference_based_generation_x(self, N=25, reference_image=None):
         z2_sample_rand = \
             self.reference_based_generation_z(N=N, reference_image=reference_image)
-        generated_x = self.generate_x_from_z(z2_sample_rand)
+        generated_x = self.generate_x_from_z(z2_sample_rand.reshape(-1, self.args.z2_size))
         return generated_x
 
     def generate_x_interpolate(self, exemplars_embedding, dim=0):
@@ -279,12 +279,14 @@ class BaseModel(nn.Module, ABC):
 
     def data_dependent_init(self, data_batch):
         def init_hook_(module, input, output):
-            std, mean = torch.std_mean(output, dim=[0, 2, 3])
             g = getattr(module, 'weight_g')
-            g.data = g.data/std.reshape((len(std), 1, 1, 1))
+            g.data = g.new_ones(g.shape)
+            setattr(module, 'weight', _weight_norm(getattr(module, 'weight_v'), g, dim=0))
+            out_v = module.conv2d_forward(input[0], module.weight)
+            std, mean = torch.std_mean(out_v, dim=[0, 2, 3])
+            g.data = (.1*g.data)/std.reshape((len(std), 1, 1, 1))
             b = getattr(module, 'bias')
-            b.data -= mean
-            b.data /= std
+            b.data = (b.data-mean)*g.data.squeeze()
             setattr(module, 'weight', _weight_norm(getattr(module, 'weight_v'), g, dim=0))
             return module.conv2d_forward(input[0], module.weight)
 
