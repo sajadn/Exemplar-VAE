@@ -29,7 +29,7 @@ class base_load_data(ABC):
             data = np.clip((data + 0.5) / 256., 0., 1.)
             if self.args.use_logit:
                 data = scaled_logit(data, self.args.lambd)
-            elif self.args.model_name == 'conv_resnet_vae':
+            elif self.args.zero_center:
                 data -= 0.5
         else:
             data = data / 255.

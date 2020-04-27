@@ -141,6 +141,8 @@ class VAE(AbsModel):
             x_logvar = torch.zeros(1, np.prod(self.args.input_size))
         else:
             if self.args.use_logit is False:
+                if self.args.zero_center:
+                    x_mean += 0.5
                 x_mean = torch.clamp(x_mean, min=0.+1./512., max=1.-1./512.)
             reshaped_var = self.decoder_logstd.unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
             x_logvar = reshaped_var*x_mean.new_ones(size=x_mean.shape)
