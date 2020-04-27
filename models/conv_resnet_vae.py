@@ -10,9 +10,10 @@ from utils.utils import inverse_scaled_logit
 
 
 class block(nn.Module):
-    def __init__(self, input_size, output_size, stride=1, kernel=3, padding=1, bottleneck=32):
+    def __init__(self, input_size, output_size, stride=1, kernel=3, padding=1, bottleneck=32, resnet_coeff=1.):
         super(block, self).__init__()
         self.bottleneck = bottleneck
+        self.resnet_coeff = resnet_coeff
         self.conv1_forward = weight_norm(
             nn.Conv2d(input_size, output_size + self.bottleneck, kernel_size=kernel, stride=stride,
                       padding=padding,
@@ -40,7 +41,7 @@ class block(nn.Module):
         else:
             q_z = q_z_mean
 
-        return x+self.args.resnet_coeff*self.conv2_forward(self.activation(torch.cat((out1[:, :-2 * self.bottleneck, :, :],
+        return x+self.resnet_coeff*self.conv2_forward(self.activation(torch.cat((out1[:, :-2 * self.bottleneck, :, :],
                                                              q_z),
                                                   dim=1))), (q_z, q_z_mean, q_z_logvar)
 
@@ -49,13 +50,13 @@ class block(nn.Module):
         p_z_mean = out1[:, -2 * self.bottleneck:-self.bottleneck, :, :]
         p_z_logvar = out1[:, -self.bottleneck:, :, :]
         if self.q_z is not None:
-            out = x + self.args.resnet_coeff*self.conv2_backward(
+            out = x + self.resnet_coeff*self.conv2_backward(
                 self.activation(torch.cat((out1[:, :-2 * self.bottleneck, :, :], self.q_z), dim=1))), \
                    (p_z_mean, p_z_logvar)
             self.q_z = None
             return out
         else:
-            return x + self.args.resnet_coeff*self.conv2_backward(
+            return x + self.resnet_coeff*self.conv2_backward(
                 self.activation(torch.cat((out1[:, :-2 * self.bottleneck, :, :], reparameterize(p_z_mean, p_z_logvar)), dim=1))), \
                             (p_z_mean, p_z_logvar)
 
@@ -78,7 +79,8 @@ class VAE(AbsModel):
         self.up_sample = nn.Upsample(scale_factor=2)
 
         self.layers = nn.ModuleList([
-            *[block(input_size=self.cs, output_size=self.cs, stride=1, kernel=3, padding=1, bottleneck=self.bottleneck)
+            *[block(input_size=self.cs, output_size=self.cs, stride=1, kernel=3, padding=1, bottleneck=self.bottleneck,
+                    resnet_coeff=args.resnet_coeff)
               for _ in range(self.args.rs_blocks)]])
 
         self.q_z_mean = nn.Sequential(nn.ELU(),
