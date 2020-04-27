@@ -95,6 +95,7 @@ parser.add_argument('--training_set_size', type=int, default=50000)
 parser.add_argument('--rs_blocks', type=int, default=5)
 parser.add_argument('--data_dependent_init', type=str2bool, default=False)
 parser.add_argument('--resnet_coeff', type=float, default=1.)
+parser.add_argument('--zero_center', type=str2bool, default=False)
 
 
 
