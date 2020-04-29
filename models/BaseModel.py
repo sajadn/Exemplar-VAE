@@ -286,7 +286,7 @@ class BaseModel(nn.Module, ABC):
             setattr(module, 'weight', _weight_norm(getattr(module, 'weight_v'), g, dim=0))
             out_v = module.conv2d_forward(input[0], module.weight)
             std, mean = torch.std_mean(out_v, dim=[0, 2, 3])
-            g.data = (.1*g.data)/std.reshape((len(std), 1, 1, 1))
+            g.data = (self.args.resnet_coeff*g.data)/std.reshape((len(std), 1, 1, 1))
             b = getattr(module, 'bias')
             b.data = (b.data-mean)*g.data.squeeze()
             setattr(module, 'weight', _weight_norm(getattr(module, 'weight_v'), g, dim=0))
