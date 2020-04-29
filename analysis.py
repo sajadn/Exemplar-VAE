@@ -178,9 +178,10 @@ for folder in sorted(os.listdir(directory)):
                                          dir, knn_dictionary, args, val=False)
             if args.generate:
                 with torch.no_grad():
-                    exemplars_n = 50
-                    selected_indices = torch.randint(low=0, high=config.training_set_size, size=(exemplars_n,))
-                    reference_images, indices, labels =train_loader.dataset[selected_indices]
+                    exemplars_n = 20
+                    selected_indices, _ = torch.sort(
+                        torch.randint(low=0, high=config.training_set_size, size=(exemplars_n, )))
+                    reference_images, indices, labels = train_loader.dataset[selected_indices.cpu().numpy()]
                     per_exemplar = 11
                     generated = model.reference_based_generation_x(N=per_exemplar, reference_image=reference_images)
                     generated = generated.reshape(-1, per_exemplar, *config.input_size)
@@ -188,7 +189,9 @@ for folder in sorted(os.listdir(directory)):
                     generated_dir = dir + 'generated/'
                     if config.use_logit:
                         reference_images = torch.floor(inverse_scaled_logit(reference_images, config.lambd)*256).int()
-                    else:
+                    elif config.input_type=='continuous' or config.input_type=='gray':
+                        if config.zero_center is True:
+                            reference_images += 0.5
                         reference_images = (reference_images*256).int()
                         generated = (generated*256).int()
 
@@ -218,29 +221,43 @@ for folder in sorted(os.listdir(directory)):
 
 
             if args.tsne_visualization:
-                rcParams['figure.figsize'] = 10, 10
-                test_x, _, test_labels = extract_full_data(test_loader)
-                test_z, _ = model.q_z(test_x.to(args.device))
-                tsne = TSNE(n_components=2)
-                plt_colors = np.array(
-                    ['blue', 'orange', 'green', 'red', 'cyan', 'pink', 'purple', 'brown', 'gray', 'olive'])
+                with torch.no_grad():
+                    rcParams['figure.figsize'] = 10, 10
+                    whole_test_z = []
+                    for i in range(8):
+                        data = test_loader.dataset[500*i:500*(i+1)]
+                        if len(data) ==3:
+                            test_x, _, test_labels = data
+                        else:
+                            test_x, test_labels = data
+                        test_z, _ = model.q_z(test_x.to(args.device))
+                        whole_test_z.append(test_z)
+                    test_z = torch.cat(whole_test_z, dim=0)
+                    tsne = TSNE(n_components=2)
+                    plt_colors = np.array(
+                        ['blue', 'orange', 'green', 'red', 'cyan', 'pink', 'purple', 'brown', 'gray', 'olive'])
 
-                if config.dataset_name == 'fashion_mnist':
-                    label_names = ['T-shirt', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt',
-                                   'Sneaker', 'Bag', 'Ankle Boot']
-                elif config.dataset_name == 'dynamic_mnist':
-                    label_names = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
-                else:
-                    label_names = None
+                    if config.dataset_name == 'fashion_mnist':
+                        label_names = ['T-shirt', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt',
+                                       'Sneaker', 'Bag', 'Ankle Boot']
+                    elif config.dataset_name == 'dynamic_mnist':
+                        label_names = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+                    else:
+                        label_names = None
 
-                points_to_visualize = tsne.fit_transform(X=test_z.detach().cpu().numpy())
-                for i in range(len(label_names)):
-                    label_i = (test_labels == i)
-                    plt.scatter(points_to_visualize[label_i, 0], points_to_visualize[label_i, 1],
-                                c=plt_colors[i], s=3, label=label_names[i])
-                plt.legend(fontsize=10, markerscale=5)
-                plt.savefig(dir+'tsne.png')
-                plt.show()
+                    print(test_z.shape)
+                    points_to_visualize = tsne.fit_transform(X=test_z.detach().cpu().numpy())
+                    if config.dataset_name == 'fashion_mnist' or config.dataset_name == 'dynamic_mnist':
+                        for i in range(len(label_names)):
+                            label_i = (test_labels == i)
+                            plt.scatter(points_to_visualize[label_i, 0], points_to_visualize[label_i, 1],
+                                        c=plt_colors[i], s=3, label=label_names[i])
+                    else:
+                        plt.scatter(points_to_visualize[:, 0], points_to_visualize[:, 1],
+                                    s=3)
+                    plt.legend(fontsize=10, markerscale=5)
+                    plt.savefig(dir+'tsne.png')
+                    plt.show()
 
             if args.classify:
                 test_acc = []
