@@ -23,7 +23,7 @@ class VAE(AbsUpModel):
                 self.f = torch.nn.Sequential(self.activation, self.conv1, self.activation, self.conv2)
 
             def forward(self, x):
-                return x + self.f(x)
+                return x + args.resnet_coeff*self.f(x)
 
         self.train_data_size = train_data_size
         self.cs = 100
