@@ -42,39 +42,43 @@ class VAE(AbsModel):
         self.train_data_size = train_data_size
 
         self.q_z_layers = nn.Sequential(
-            weight_norm(nn.Conv2d(in_channels=self.args.input_size[0], out_channels=128, kernel_size=5, stride=2, padding=2)),
+            weight_norm(nn.Conv2d(in_channels=self.args.input_size[0], out_channels=32, kernel_size=5, stride=2, padding=2)),
             nn.ELU(),
-            weight_norm(nn.Conv2d(in_channels=128, out_channels=256, kernel_size=5, stride=2, padding=2)),
+            weight_norm(nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=2, padding=2)),
             nn.ELU(),
-            weight_norm(nn.Conv2d(in_channels=256, out_channels=512, kernel_size=5, stride=2, padding=2)),
+            weight_norm(nn.Conv2d(in_channels=32, out_channels=64, kernel_size=5, stride=2, padding=2)),
             nn.ELU(),
-            weight_norm(nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=5, stride=2, padding=2)),
+            weight_norm(nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=2, padding=2)),
             nn.ELU(),
-            Flatten()
+            Flatten(),
+            weight_norm(nn.Linear(64*4*4, 256)),
+            nn.ELU()
         )
 
-        self.q_z_mean = nn.Sequential(weight_norm(nn.Linear(1024 * 4 * 4, self.args.z1_size)))
+        self.q_z_mean = nn.Sequential(weight_norm(nn.Linear(256, self.args.z1_size)))
 
-        self.q_z_logvar = nn.Sequential(weight_norm(nn.Linear(1024 * 4 * 4, self.args.z1_size)))
+        self.q_z_logvar = nn.Sequential(weight_norm(nn.Linear(256, self.args.z1_size)))
 
         self.p_x_layers = nn.Sequential(
-            weight_norm(nn.Linear(self.args.z1_size, 1024*4*4)),
+            weight_norm(nn.Linear(self.args.z1_size, 256)),
             nn.ELU(),
-            UnFlatten(size=[1024, 4, 4]),
+            weight_norm(nn.Linear(256, 64*4*4)),
+            nn.ELU(),
+            UnFlatten(size=[64, 4, 4]),
             nn.Upsample(scale_factor=2),
             weight_norm(
-                nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=5, stride=1, padding=2)),
+                nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=1, padding=2)),
             nn.ELU(),
             nn.Upsample(scale_factor=2),
-            weight_norm(nn.Conv2d(in_channels=512, out_channels=256, kernel_size=5, stride=1, padding=2)),
+            weight_norm(nn.Conv2d(in_channels=64, out_channels=32, kernel_size=5, stride=1, padding=2)),
             nn.ELU(),
             nn.Upsample(scale_factor=2),
             weight_norm(
-                nn.Conv2d(in_channels=256, out_channels=128, kernel_size=5, stride=1, padding=2)),
+                nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=1, padding=2)),
             nn.ELU(),
             nn.Upsample(scale_factor=2),
         )
 
         if self.args.input_type == 'gray' or self.args.input_type == 'continuous':
-            self.p_x_mean = weight_norm(nn.Conv2d(in_channels=128, out_channels=self.args.input_size[0], kernel_size=5, stride=1, padding=2))
+            self.p_x_mean = weight_norm(nn.Conv2d(in_channels=32, out_channels=self.args.input_size[0], kernel_size=5, stride=1, padding=2))
 
