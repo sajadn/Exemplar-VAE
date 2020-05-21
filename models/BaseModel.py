@@ -52,6 +52,8 @@ class BaseModel(nn.Module, ABC):
         pass
 
     def reconstruction_loss(self, x, x_mean, x_logvar):
+        if self.args.zero_center:
+            x += 0.5
         if self.args.input_type == 'binary':
             return log_bernoulli(x, x_mean, dim=1)
         elif self.args.input_type == 'gray' or self.args.input_type == 'continuous':

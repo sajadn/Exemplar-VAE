@@ -29,6 +29,8 @@ class base_load_data(ABC):
             data = np.clip((data + 0.5) / 256., 0., 1.)
             if self.args.use_logit:
                 data = scaled_logit(data, self.args.lambd)
+            elif self.args.zero_center:
+                data -= 0.5
         else:
             data = data / 255.
         return np.reshape(data, (-1, np.prod(self.args.input_size)))

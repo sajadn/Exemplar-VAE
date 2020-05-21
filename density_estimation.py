@@ -94,6 +94,7 @@ parser.add_argument('--bottleneck', type=int, default=6)
 parser.add_argument('--training_set_size', type=int, default=50000)
 parser.add_argument('--rs_blocks', type=int, default=5)
 parser.add_argument('--data_dependent_init', type=str2bool, default=False)
+parser.add_argument('--zero_center', type=str2bool, default=False)
 
 
 
@@ -242,7 +243,7 @@ def run(args, kwargs):
 
     if args.data_dependent_init:
         with torch.no_grad():
-            model.data_dependent_init(train_loader.dataset.tensors[0][:1000].cuda())
+            model.data_dependent_init(train_loader.dataset[:1000][0].cuda())
     run_density_estimation(args, train_loader, val_loader, test_loader, model, optimizer, dir, model_name = args.model_name)
 
 

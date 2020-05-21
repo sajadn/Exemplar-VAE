@@ -77,5 +77,5 @@ class VAE(AbsModel):
         )
 
         if self.args.input_type == 'gray' or self.args.input_type == 'continuous':
-            self.p_x_mean = nn.Sequential(nn.Sigmoid(), nn.Conv2d(in_channels=128, out_channels=3, kernel_size=5, stride=1, padding=2))
+            self.p_x_mean = nn.Sequential(weight_norm(nn.Conv2d(in_channels=128, out_channels=3, kernel_size=5, stride=1, padding=2)), )
 
