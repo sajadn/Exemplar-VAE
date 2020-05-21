@@ -57,9 +57,9 @@ class VAE(AbsModel):
             Flatten()
         )
 
-        self.q_z_mean = nn.Sequential(weight_norm(nn.Linear(1024 * 4 * 4, self.args.z1_size)))
+        self.q_z_mean = nn.Sequential(nn.Linear(1024 * 4 * 4, self.args.z1_size),)
 
-        self.q_z_logvar = nn.Sequential(weight_norm(nn.Linear(1024 * 4 * 4, self.args.z1_size)))
+        self.q_z_logvar = nn.Sequential(nn.Linear(1024 * 4 * 4, self.args.z1_size), )
 
         self.p_x_layers = nn.Sequential(
             nn.Linear(self.args.z1_size, 1024 * 4 * 4),
