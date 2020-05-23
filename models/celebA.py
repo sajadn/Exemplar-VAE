@@ -46,7 +46,7 @@ class VAE(AbsModel):
             nn.Conv2d(in_channels=self.args.input_size[0], out_channels=128//d_size, kernel_size=5, stride=2, padding=2),
             nn.BatchNorm2d(128//d_size),
             nn.ELU(),
-            nn.Conv2d(in_channels=128//divide_size, out_channels=256//d_size, kernel_size=5, stride=2, padding=2),
+            nn.Conv2d(in_channels=128//d_size, out_channels=256//d_size, kernel_size=5, stride=2, padding=2),
             nn.BatchNorm2d(256//d_size),
             nn.ELU(),
             nn.Conv2d(in_channels=256//d_size, out_channels=512//d_size, kernel_size=5, stride=2, padding=2),
