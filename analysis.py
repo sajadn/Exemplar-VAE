@@ -178,9 +178,9 @@ for folder in sorted(os.listdir(directory)):
                                          dir, knn_dictionary, args, val=False)
             if args.generate:
                 with torch.no_grad():
-                    exemplars_n = 50
-                    selected_indices = torch.randint(low=0, high=config.training_set_size, size=(exemplars_n,))
-                    reference_images, indices, labels =train_loader.dataset[selected_indices]
+                    exemplars_n = 10
+                    selected_indices = torch.sort(torch.randint(low=0, high=config.training_set_size, size=(exemplars_n,)))[0]
+                    reference_images, indices, labels =train_loader.dataset[selected_indices.numpy()]
                     per_exemplar = 11
                     generated = model.reference_based_generation_x(N=per_exemplar, reference_image=reference_images)
                     generated = generated.reshape(-1, per_exemplar, *config.input_size)

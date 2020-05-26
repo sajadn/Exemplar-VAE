@@ -186,8 +186,8 @@ class BaseModel(nn.Module, ABC):
     def reference_based_generation_x(self, N=25, reference_image=None):
         z2_sample_rand = \
             self.reference_based_generation_z(N=N, reference_image=reference_image)
-        generated_x = self.generate_x_from_z(z2_sample_rand)
-        return generated_x
+        generated_x = self.generate_x_from_z(z2_sample_rand.reshape(-1, self.args.z2_size))
+        return generated_x.reshape(len(reference_image), N, np.prod(self.args.input_size))
 
     def generate_x_interpolate(self, exemplars_embedding, dim=0):
         zs = self.generate_z_interpolate(exemplars_embedding, dim=dim)
