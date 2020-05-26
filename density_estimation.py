@@ -96,6 +96,7 @@ parser.add_argument('--divide_size', type=int, default=1)
 parser.add_argument('--rs_blocks', type=int, default=5)
 parser.add_argument('--data_dependent_init', type=str2bool, default=False)
 parser.add_argument('--zero_center', type=str2bool, default=False)
+parser.add_argument('--less_upsample', type=str2bool, default=False)
 
 
 
