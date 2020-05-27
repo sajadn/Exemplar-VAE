@@ -10,7 +10,7 @@ import torch
 import torch.utils.data as data_utils
 import zipfile
 from utils.utils import scaled_logit
-
+from PIL import Image
 
 class dynamic_mnist_loader(base_load_data):
     def __init__(self, args, use_fixed_validation=False, no_binarization=False):
@@ -30,21 +30,35 @@ class h5dataset(torch.utils.data.Dataset):
         self.file = h5py.File(in_file, 'r')
         self.n_images, self.nx, self.ny, self.ch = self.file['data'].shape
         self.tensors = (self.file['data'], torch.arange(self.n_images).reshape(-1, 1))
+        self.trns = transforms.Compose([transforms.Resize(68), transforms.RandomCrop(64), transforms.RandomHorizontalFlip(p=0.5)])
 
     def __getitem__(self, index):
         return self.preprocess(self.tensors[0][index, :, :, :].astype('float32')),\
                self.tensors[1][index], torch.tensor([])
+
 
     def __len__(self):
         return self.n_images
 
     def preprocess(self, data):
         if self.args.input_type == 'gray' or self.args.input_type == 'continuous':
+            if self.args.with_augmentation:
+                new_data = []
+                if data.shape[0] == 3:
+                    data = np.expand_dims(data, 0)
+                for data_i in data:
+                    data_i = np.transpose(data_i, (1, 2, 0))
+                    data_i = self.trns(Image.fromarray(np.uint8(data_i)))
+                    data_i = np.asarray(data_i)
+                    data_i = np.transpose(data_i, (2, 0, 1))
+                    new_data.append(data_i)
+                data = np.stack(new_data, axis=0)
             data = np.clip((data + 0.5) / 256., 0., 1.)
             if self.args.use_logit:
                 data = scaled_logit(data, self.args.lambd)
             elif self.args.zero_center:
                 data -= 0.5
+
         else:
             data = data / 255.
         return  torch.from_numpy(np.reshape(data, (-1, np.prod(self.args.input_size))))
