@@ -42,7 +42,7 @@ class h5dataset(torch.utils.data.Dataset):
 
     def preprocess(self, data):
         if self.args.input_type == 'gray' or self.args.input_type == 'continuous':
-            if self.args.with_augmentation:
+            if self.args.with_augmentation and len(self.tensors[0])>50000:
                 new_data = []
                 if data.shape[0] == 3:
                     data = np.expand_dims(data, 0)
@@ -61,7 +61,7 @@ class h5dataset(torch.utils.data.Dataset):
 
         else:
             data = data / 255.
-        return  torch.from_numpy(np.reshape(data, (-1, np.prod(self.args.input_size))))
+        return  torch.from_numpy(np.reshape(data, (-1, np.prod(self.args.input_size)))).float()
 
 
 class celebA_loader(base_load_data):
