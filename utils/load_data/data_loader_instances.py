@@ -42,17 +42,14 @@ class h5dataset(torch.utils.data.Dataset):
 
     def preprocess(self, data):
         if self.args.input_type == 'gray' or self.args.input_type == 'continuous':
-            if self.args.with_augmentation and len(self.tensors[0])>50000:
-                new_data = []
-                if data.shape[0] == 3:
-                    data = np.expand_dims(data, 0)
-                for data_i in data:
-                    data_i = np.transpose(data_i, (1, 2, 0))
-                    data_i = self.trns(Image.fromarray(np.uint8(data_i)))
-                    data_i = np.asarray(data_i)
-                    data_i = np.transpose(data_i, (2, 0, 1))
-                    new_data.append(data_i)
-                data = np.stack(new_data, axis=0)
+            print(data.shape)
+            if self.args.with_augmentation and len(self.tensors[0]) > 50000 and data.shape[0] == 3:
+                print('data shape inside', data.shape)
+                data = np.transpose(data, (1, 2, 0))
+                data = self.trns(Image.fromarray(np.uint8(data)))
+                data = np.asarray(data)
+                data = np.transpose(data, (2, 0, 1))
+
             data = np.clip((data + 0.5) / 256., 0., 1.)
             if self.args.use_logit:
                 data = scaled_logit(data, self.args.lambd)
