@@ -30,7 +30,10 @@ class h5dataset(torch.utils.data.Dataset):
         self.file = h5py.File(in_file, 'r')
         self.n_images, self.nx, self.ny, self.ch = self.file['data'].shape
         self.tensors = (self.file['data'], torch.arange(self.n_images).reshape(-1, 1))
-        self.trns = transforms.Compose([transforms.Resize(68), transforms.RandomCrop(64), transforms.RandomHorizontalFlip(p=0.5)])
+        self.trns = transforms.Compose([
+                                      transforms.Pad(4, padding_mode='reflect'),
+                                      transforms.RandomCrop(64),
+                                      transforms.RandomHorizontalFlip(0.5)])
 
     def __getitem__(self, index):
         return self.preprocess(self.tensors[0][index, :, :, :].astype('float32')),\
@@ -42,9 +45,7 @@ class h5dataset(torch.utils.data.Dataset):
 
     def preprocess(self, data):
         if self.args.input_type == 'gray' or self.args.input_type == 'continuous':
-            print(data.shape)
             if self.args.with_augmentation and len(self.tensors[0]) > 50000 and data.shape[0] == 3:
-                print('data shape inside', data.shape)
                 data = np.transpose(data, (1, 2, 0))
                 data = self.trns(Image.fromarray(np.uint8(data)))
                 data = np.asarray(data)
