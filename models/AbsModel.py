@@ -51,5 +51,5 @@ class AbsModel(BaseModel):
         z_q_mean, z_q_logvar = self.q_z(x)
 
         z_q = self.reparameterize(z_q_mean, z_q_logvar)
-        x_mean, x_logvar = self.p_x(z_q)
+        x_mean, x_logvar = self.p_x(z_q.reshape(-1, 8, 4, 4))
         return x_mean, x_logvar, (z_q, z_q_mean, z_q_logvar)
