@@ -13,6 +13,7 @@ from utils.distributions import log_bernoulli, log_normal_diag, log_normal_stand
 from abc import ABC, abstractmethod
 from torch import _weight_norm
 
+
 class BaseModel(nn.Module, ABC):
     def __init__(self, args):
         super(BaseModel, self).__init__()
@@ -67,6 +68,7 @@ class BaseModel(nn.Module, ABC):
     def calculate_loss(self, x, beta=1., average=False,
                        exemplars_embedding=None, cache=None, dataset=None):
         x, x_indices = x
+
         x_mean, x_logvar, latent_stats = self.forward(x)
         RE = self.reconstruction_loss(x, x_mean, x_logvar)
         KL = self.kl_loss(latent_stats, exemplars_embedding, dataset, cache, x_indices)
@@ -79,7 +81,7 @@ class BaseModel(nn.Module, ABC):
         return loss, RE, KL
 
     def reparameterize(self, mu, logvar):
-        std = logvar.mul(0.5).exp_()
+        std = logvar.mul(0.5).exp_()*self.args.scale_std
         eps = mu.new_empty(size=std.shape).normal_()
         return eps.mul(std).add_(mu)
 
@@ -225,7 +227,6 @@ class BaseModel(nn.Module, ABC):
                 batch_data, batch_indices, _ = dataset[i * caching_batch_size:(i + 1) * caching_batch_size]
             else:
                 batch_data, _ = dataset[i * caching_batch_size:(i + 1) * caching_batch_size]
-
             exemplars_embedding, log_variance_z = self.q_z(batch_data.to(self.args.device), prior=prior)
             cached_z.append(exemplars_embedding)
             cached_log_var.append(log_variance_z)
