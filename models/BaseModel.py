@@ -219,6 +219,7 @@ class BaseModel(nn.Module, ABC):
         return z_q_mean.reshape(-1, self.args.z1_size), z_q_logvar.reshape(-1, self.args.z1_size)
 
     def cache_z(self, dataset, prior=True, cuda=True):
+        self.eval()
         cached_z = []
         cached_log_var = []
         caching_batch_size = 5000
@@ -235,6 +236,7 @@ class BaseModel(nn.Module, ABC):
         cached_log_var = torch.cat(cached_log_var, dim=0)
         cached_z = cached_z.to(self.args.device)
         cached_log_var = cached_log_var.to(self.args.device)
+        self.train()
         return cached_z, cached_log_var
 
     def get_exemplar_set(self, z_mean, z_log_var, dataset, cache, x_indices):
