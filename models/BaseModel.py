@@ -71,8 +71,9 @@ class BaseModel(nn.Module, ABC):
 
         x_mean, x_logvar, latent_stats = self.forward(x)
         RE = self.reconstruction_loss(x, x_mean, x_logvar)
-        KL = self.kl_loss(latent_stats, exemplars_embedding, dataset, cache, x_indices)
-        loss = -RE + beta*KL
+        # KL = self.kl_loss(latent_stats, exemplars_embedding, dataset, cache, x_indices)
+        KL = torch.tensor(0.)
+        loss = -RE
         if average:
             loss = torch.mean(loss)
             RE = torch.mean(RE)
@@ -237,6 +238,7 @@ class BaseModel(nn.Module, ABC):
         return cached_z, cached_log_var
 
     def get_exemplar_set(self, z_mean, z_log_var, dataset, cache, x_indices):
+        self.eval()
         if self.args.approximate_prior is False:
             exemplars_indices = torch.randperm(self.args.training_set_size)[:self.args.number_components]
             exemplars_z, log_variance = self.q_z(dataset[exemplars_indices][0].to(self.args.device), prior=True)
@@ -246,6 +248,7 @@ class BaseModel(nn.Module, ABC):
                 z=(z_mean, z_log_var, x_indices),
                 dataset=dataset,
                 cache=cache)
+        self.train()
         return exemplar_set
 
     def get_approximate_nearest_exemplars(self, z, cache, dataset):

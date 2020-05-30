@@ -41,7 +41,7 @@ class AbsModel(BaseModel):
             if self.args.use_logit is False:
                 if self.args.zero_center:
                     x_mean += 0.5
-                x_mean = torch.clamp(x_mean, min=0.+1./512., max=1.-1./512.)
+                # x_mean = torch.clamp(x_mean, min=0.+1./512., max=1.-1./512.)
             try:
                 decoder_logstd = torch.clamp(self.decoder_logstd, max=self.args.decoder_upper_bound)
             except:
@@ -55,5 +55,9 @@ class AbsModel(BaseModel):
         z_q_mean, z_q_logvar = self.q_z(x)
 
         z_q = self.reparameterize(z_q_mean, z_q_logvar)
-        x_mean, x_logvar = self.p_x(z_q)
+        if self.args.model_name == 'CelebA':
+            x_mean, x_logvar = self.p_x(z_q.reshape(-1, 8, 4, 4))
+        else:
+            x_mean, x_logvar = self.p_x(z_q)
+
         return x_mean, x_logvar, (z_q, z_q_mean, z_q_logvar)

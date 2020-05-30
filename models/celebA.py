@@ -55,19 +55,16 @@ class VAE(AbsModel):
             nn.Conv2d(in_channels=512//d_size, out_channels=1024//d_size, kernel_size=5, stride=2, padding=2),
             nn.BatchNorm2d(1024//d_size),
             nn.ELU(),
-            Flatten()
         )
 
-        self.q_z_mean = nn.Sequential(nn.Linear(1024//d_size * 4 * 4, self.args.z1_size),)
+        self.q_z_mean = nn.Conv2d(in_channels=1024//d_size, out_channels=8, kernel_size=5, stride=1, padding=2)
+        self.q_z_logvar = nn.Conv2d(in_channels=1024//d_size, out_channels=8, kernel_size=5, stride=1, padding=2)
 
-        self.q_z_logvar = nn.Sequential(nn.Linear(1024//d_size * 4 * 4, self.args.z1_size), )
-
-        coeff = 2 if args.less_upsample else 1
         self.p_x_layers = nn.Sequential(
-            nn.Linear(self.args.z1_size, 1024//d_size * 4 * 4 * coeff * coeff),
-            nn.BatchNorm1d(1024//d_size * 4 * 4 * coeff * coeff),
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(in_channels=8, out_channels=1024//d_size, kernel_size=5, stride=1, padding=2),
+            nn.BatchNorm2d(1024//d_size),
             nn.ELU(),
-            UnFlatten(size=[1024//d_size, 4*coeff, 4*coeff]),
             nn.Upsample(scale_factor=2),
             nn.Conv2d(in_channels=1024//d_size, out_channels=512//d_size, kernel_size=5, stride=1, padding=2),
             nn.BatchNorm2d(512//d_size),
@@ -82,8 +79,8 @@ class VAE(AbsModel):
             nn.ELU(),
         )
 
-        if args.less_upsample is False:
-            self.p_x_layers = nn.Sequential(self.p_x_layers, nn.Upsample(scale_factor=2))
+        # if args.less_upsample is False:
+        # self.p_x_layers = nn.Sequential(self.p_x_layers,)
 
 
         if self.args.input_type == 'gray' or self.args.input_type == 'continuous':

@@ -70,19 +70,23 @@ def generate_fancy_grid(config, dir, reference_data, generated, col_num=4, row_n
 def plot_images_in_line(images, args, dir, file_name):
     import cv2
 
-    width = len(images) * 28
-    height = 28
-    grid = np.ones((height, width))
+    width = len(images) * args.input_size[1]
+    height = args.input_size[1]
+    grid = np.ones((args.input_size[0], height, width))
     for index, image in enumerate(images):
         image = image.reshape(*args.input_size).cpu().detach().numpy()
-        grid[0:28, 28*index:28*(index+1)] = image[0]
-    file_name = os.path.join(dir, file_name)
-    plt.imsave(arr=grid / 255,
-               fname=file_name,
-               cmap='gray', format='png')
+        print(image.shape)
+        print(args.input_size[1]*(index+1))
+        grid[:, 0:args.input_size[1], args.input_size[1]*index:args.input_size[1]*(index+1)] = image
 
+    grid = np.transpose(grid, (1, 2, 0))
+
+    file_name = os.path.join(dir, file_name)
+    plt.imsave(arr=grid,
+               fname=file_name,
+                format='png')
     img = cv2.imread(file_name)
-    res = cv2.resize(img, dsize=(width*3, height*3), interpolation=cv2.INTER_NEAREST)
+    res = cv2.resize(img, dsize=(width*4, height*4), interpolation=cv2.INTER_NEAREST)
     cv2.imwrite(file_name, res)
 
 
