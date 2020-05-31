@@ -218,6 +218,7 @@ class BaseModel(nn.Module, ABC):
         return z_q_mean.reshape(-1, self.args.z1_size), z_q_logvar.reshape(-1, self.args.z1_size)
 
     def cache_z(self, dataset, prior=True, cuda=True):
+        train =  self.training
         self.eval()
         cached_z = []
         cached_log_var = []
@@ -235,10 +236,12 @@ class BaseModel(nn.Module, ABC):
         cached_log_var = torch.cat(cached_log_var, dim=0)
         cached_z = cached_z.to(self.args.device)
         cached_log_var = cached_log_var.to(self.args.device)
-        self.train()
+        if train:
+            self.train()
         return cached_z, cached_log_var
 
     def get_exemplar_set(self, z_mean, z_log_var, dataset, cache, x_indices):
+        train = self.training
         self.eval()
         if self.args.approximate_prior is False:
             exemplars_indices = torch.randperm(self.args.training_set_size)[:self.args.number_components]
@@ -249,7 +252,8 @@ class BaseModel(nn.Module, ABC):
                 z=(z_mean, z_log_var, x_indices),
                 dataset=dataset,
                 cache=cache)
-        self.train()
+        if train:
+            self.train()
         return exemplar_set
 
     def get_approximate_nearest_exemplars(self, z, cache, dataset):
