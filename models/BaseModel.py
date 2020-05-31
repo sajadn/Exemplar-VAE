@@ -71,9 +71,8 @@ class BaseModel(nn.Module, ABC):
 
         x_mean, x_logvar, latent_stats = self.forward(x)
         RE = self.reconstruction_loss(x, x_mean, x_logvar)
-        # KL = self.kl_loss(latent_stats, exemplars_embedding, dataset, cache, x_indices)
-        KL = torch.tensor(0.)
-        loss = -RE
+        KL = self.kl_loss(latent_stats, exemplars_embedding, dataset, cache, x_indices)
+        loss = -RE + beta*KL
         if average:
             loss = torch.mean(loss)
             RE = torch.mean(RE)
