@@ -84,5 +84,7 @@ class VAE(AbsModel):
 
 
         if self.args.input_type == 'gray' or self.args.input_type == 'continuous':
-            self.p_x_mean = nn.Sequential(nn.Conv2d(in_channels=128//d_size, out_channels=3, kernel_size=5, stride=1, padding=2), nn.Sigmoid())
-
+            if args.use_logit is False:
+                self.p_x_mean = nn.Sequential(nn.Conv2d(in_channels=128//d_size, out_channels=3, kernel_size=5, stride=1, padding=2), nn.Sigmoid())
+            else:
+                self.p_x_mean = nn.Sequential(nn.Conv2d(in_channels=128//d_size, out_channels=3, kernel_size=5, stride=1, padding=2))
