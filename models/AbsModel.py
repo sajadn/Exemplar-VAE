@@ -33,6 +33,8 @@ class AbsModel(BaseModel):
     def p_x(self, z):
         if 'conv' in self.args.model_name:
             z = z.reshape(-1, self.bottleneck, self.args.input_size[1]//2, self.args.input_size[1]//2)
+        if self.args.model_name == 'CelebA':
+            z = z.reshape(-1, args.z1_size//16, 4, 4)
         z = self.p_x_layers(z)
         x_mean = self.p_x_mean(z)
         if self.args.input_type == 'binary':
@@ -55,9 +57,6 @@ class AbsModel(BaseModel):
         z_q_mean, z_q_logvar = self.q_z(x)
 
         z_q = self.reparameterize(z_q_mean, z_q_logvar)
-        if self.args.model_name == 'CelebA':
-            x_mean, x_logvar = self.p_x(z_q.reshape(-1, 8, 4, 4))
-        else:
-            x_mean, x_logvar = self.p_x(z_q)
+        x_mean, x_logvar = self.p_x(z_q)
 
         return x_mean, x_logvar, (z_q, z_q_mean, z_q_logvar)
