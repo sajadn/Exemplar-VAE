@@ -34,7 +34,7 @@ class AbsModel(BaseModel):
         if 'conv' in self.args.model_name:
             z = z.reshape(-1, self.bottleneck, self.args.input_size[1]//2, self.args.input_size[1]//2)
         if self.args.model_name == 'CelebA':
-            z = z.reshape(-1, args.z1_size//16, 4, 4)
+            z = z.reshape(-1, self.args.z1_size//16, 4, 4)
         z = self.p_x_layers(z)
         x_mean = self.p_x_mean(z)
         if self.args.input_type == 'binary':
