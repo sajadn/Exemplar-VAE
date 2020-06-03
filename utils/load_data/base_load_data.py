@@ -66,7 +66,7 @@ class base_load_data(ABC):
     def binarize(self, x_val, x_test):
         self.args.input_type = 'binary'
         np.random.seed(777)
-        x_val = np.random.binomial(1, x_val)
+        #x_val = np.random.binomial(1, x_val)
         x_test = np.random.binomial(1, x_test)
         return x_val, x_test
 

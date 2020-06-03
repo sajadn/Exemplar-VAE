@@ -12,7 +12,7 @@ from utils.distributions import pairwise_distance
 from utils.distributions import log_bernoulli, log_normal_diag, log_normal_standard, log_logistic_256
 from abc import ABC, abstractmethod
 from torch import _weight_norm
-
+from scipy import ndimage
 
 class BaseModel(nn.Module, ABC):
     def __init__(self, args):
@@ -29,7 +29,11 @@ class BaseModel(nn.Module, ABC):
         if self.args.input_type == 'binary':
             self.p_x_mean = NonLinear(self.args.hidden_size, np.prod(self.args.input_size), activation=nn.Sigmoid())
         elif self.args.input_type == 'gray' or self.args.input_type == 'continuous':
-            self.p_x_mean = NonLinear(self.args.hidden_size, np.prod(self.args.input_size))
+            if args.use_logit:
+                activation = None
+            else:
+                activation = nn.Sigmoid()
+            self.p_x_mean = NonLinear(self.args.hidden_size, np.prod(self.args.input_size), activation=activation)
             self.p_x_logvar = NonLinear(self.args.hidden_size, np.prod(self.args.input_size),
                                         activation=nn.Hardtanh(min_val=-4.5, max_val=0))
             self.decoder_logstd = torch.nn.Parameter(torch.zeros(self.args.input_size[0], ), requires_grad=True)
@@ -229,9 +233,23 @@ class BaseModel(nn.Module, ABC):
                 batch_data, batch_indices, _ = dataset[i * caching_batch_size:(i + 1) * caching_batch_size]
             else:
                 batch_data, _ = dataset[i * caching_batch_size:(i + 1) * caching_batch_size]
-            exemplars_embedding, log_variance_z = self.q_z(batch_data.to(self.args.device), prior=prior)
-            cached_z.append(exemplars_embedding)
-            cached_log_var.append(log_variance_z)
+
+            if self.args.with_augmented_eval:
+                batch_data = batch_data.reshape(-1, *self.args.input_size).numpy()
+                #batch_data = np.pad(batch_data, ((0, 0), (0, 0), (2, 2), (2, 2)), 'minimum')
+                #for i in range(5):
+                for rot in [0]:
+                        augmented_batch = ndimage.rotate(batch_data, rot, reshape=False)
+                        augmented_batch = torch.from_numpy(augmented_batch)
+                        #augmented_batch = batch_data[:, :, i:i+28, j:j+28]
+                        exemplars_embedding, log_variance_z = self.q_z(augmented_batch.to(self.args.device).reshape(-1, np.prod(self.args.input_size)), prior=prior)
+                        cached_z.append(exemplars_embedding)
+                        cached_log_var.append(log_variance_z)
+            else:
+                exemplars_embedding, log_variance_z = self.q_z(
+                    batch_data.to(self.args.device), prior=prior)
+                cached_z.append(exemplars_embedding)
+                cached_log_var.append(log_variance_z)
         cached_z = torch.cat(cached_z, dim=0)
         cached_log_var = torch.cat(cached_log_var, dim=0)
         cached_z = cached_z.to(self.args.device)
@@ -291,3 +309,4 @@ class BaseModel(nn.Module, ABC):
         self.forward(data_batch)
         for h in handles:
             h.remove()
+

@@ -103,9 +103,13 @@ def calculate_likelihood(args, model, loader, S=5000, exemplars_embedding=None):
 
 
 def final_evaluation(train_loader, test_loader, best_model_path_load,
-                     model, optimizer, args, dir):
+                     model, optimizer, args, dir, val_loader):
         _ = load_model(best_model_path_load, model, optimizer)
-        exemplars_embedding = load_all_pseudo_input(args, model, train_loader.dataset)
+        exemplars_embedding1 = load_all_pseudo_input(args, model, train_loader.dataset)
+        exemplars_embedding2 = load_all_pseudo_input(args, model, val_loader.dataset)
+        exemplars_embedding_0 = torch.cat([exemplars_embedding1[0], exemplars_embedding2[0]], dim=0)
+        exemplars_embedding_1 = torch.cat([exemplars_embedding1[1], exemplars_embedding2[1]], dim=0)
+        exemplars_embedding = (exemplars_embedding_0, exemplars_embedding_1, torch.arange(len(exemplars_embedding_0)))
         test_samples = next(iter(test_loader))[0].to(args.device)
         visualize_reconstruction(test_samples, model, args, dir)
         visualize_generation(train_loader.dataset, model, args, dir)
