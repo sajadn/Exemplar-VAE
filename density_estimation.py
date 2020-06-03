@@ -100,6 +100,7 @@ parser.add_argument('--less_upsample', type=str2bool, default=False)
 parser.add_argument('--with_augmentation', type=str2bool, default=False)
 parser.add_argument('--scale_std', type=float, default=1.)
 parser.add_argument('--decoder_upper_bound', type=float, default=1.5)
+parser.add_argument('--with_augmented_eval', type=str2bool, default=False)
 
 
 
@@ -225,15 +226,22 @@ def run(args, kwargs):
 
     if args.parent_dir == '':
         args.parent_dir = args.prior + '_on_' + args.dataset_name+'_model_name='+args.model_name
-    model_name = args.dataset_name + '_' + args.model_name + '_' + args.prior \
-                  + '_(components_' + str(args.number_components) + ', lr=' + str(args.lr) + ')'
-    snapshots_path = os.path.join(args.base_dir, args.parent_dir) + '/'
-    dir = snapshots_path + args.model_signature + '_' + model_name + '_' + args.parent_dir + '/'
 
+        model_name = args.dataset_name + '_' + args.model_name + '_' + args.prior \
+                  + '_(components_' + str(args.number_components) + ', lr=' + str(args.lr) + ')'
+    else:
+        model_name = '2'
+    snapshots_path = os.path.join(args.base_dir, args.parent_dir) + '/'
+    dir = snapshots_path + '2'
+    print(dir)
     if args.just_evaluate:
-        config = torch.load(dir + args.model_name + '.config')
+        config = torch.load(dir+'/'+args.model_name+'.config')
         config.translation = False
         config.hidden_size = 300
+        config.device = 'cuda'
+        config.scale_std = 1.
+        config.zero_center = False
+        config.with_augmented_eval = True
         model = VAE(config)
     else:
         model = VAE(args)
