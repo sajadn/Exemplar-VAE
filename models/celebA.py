@@ -57,12 +57,12 @@ class VAE(AbsModel):
             nn.ELU(),
         )
 
-        self.q_z_mean = nn.Conv2d(in_channels=1024//d_size, out_channels=8, kernel_size=5, stride=1, padding=2)
-        self.q_z_logvar = nn.Conv2d(in_channels=1024//d_size, out_channels=8, kernel_size=5, stride=1, padding=2)
+        self.q_z_mean = nn.Conv2d(in_channels=1024//d_size, out_channels=args.z1_size//16, kernel_size=5, stride=1, padding=2)
+        self.q_z_logvar = nn.Conv2d(in_channels=1024//d_size, out_channels=args.z1_size//16, kernel_size=5, stride=1, padding=2)
 
         self.p_x_layers = nn.Sequential(
             nn.Upsample(scale_factor=2),
-            nn.Conv2d(in_channels=8, out_channels=1024//d_size, kernel_size=5, stride=1, padding=2),
+            nn.Conv2d(in_channels=args.z1_size//16, out_channels=1024//d_size, kernel_size=5, stride=1, padding=2),
             nn.BatchNorm2d(1024//d_size),
             nn.ELU(),
             nn.Upsample(scale_factor=2),
