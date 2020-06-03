@@ -15,7 +15,7 @@ from utils.utils import importing_model
 from sklearn.manifold import TSNE
 import copy
 from pylab import rcParams
-from utils.utils import inverse_scaled_logit
+from utils.utils import inverse_scaled_logit, scaled_logit_torch
 
 parser = argparse.ArgumentParser(description='VAE+VampPrior')
 parser.add_argument('--KNN', action='store_true', default=False, help='run KNN classification on latent')
@@ -39,6 +39,9 @@ parser.add_argument('--classification_dir', type=str, default='classification_re
 parser.add_argument('--epochs', type=int, default=100)
 parser.add_argument('--seed', type=int, default=1)
 parser.add_argument('--interpolate', action='store_true', default=False)
+parser.add_argument('--generate_fid', action='store_true', default=False)
+parser.add_argument('--scale_std', type=float, default=1.)
+
 args = parser.parse_args()
 
 print(args)
@@ -89,12 +92,13 @@ def interpolation(model, reference_images, dir, steps=20, k=0):
     direction = (second-first)/steps
     generated_list = []
     for i in range(steps):
-        generated = model.generate_x_from_z(first, with_reparameterize=False)
+        generated = model.generate_x_from_z(first.unsqueeze(0), with_reparameterize=False)
         generated_list.append(generated)
         first += direction
+
     save_dir = os.path.join(dir, 'interpolation')
     os.makedirs(save_dir, exist_ok=True)
-    plot_images_in_line(torch.cat(generated_list, dim=0), args, dir=save_dir, file_name='interpolation_{}.png'.format(k))
+    plot_images_in_line(torch.cat(generated_list, dim=0), config, dir=save_dir, file_name='interpolation_{}.png'.format(k))
 
 
 def compute_test_metrics(test_log_likelihood, test_kl, test_re):
@@ -151,9 +155,11 @@ for folder in sorted(os.listdir(directory)):
 
         config = torch.load(dir + model_name + '.config')
         config.device = args.device
+        config.scale_std = args.scale_std
         VAE = importing_model(config)
         model = VAE(config)
         model.to(args.device)
+        print(config)
         train_loader, val_loader, test_loader, config = load_dataset(config,
                                                                      training_num=args.training_set_size,
                                                                      no_binarization=True)
@@ -179,7 +185,8 @@ for folder in sorted(os.listdir(directory)):
             if args.generate:
                 with torch.no_grad():
                     exemplars_n = 10
-                    selected_indices = torch.sort(torch.randint(low=0, high=config.training_set_size, size=(exemplars_n,)))[0]
+                    # selected_indices = torch.sort(torch.randint(low=0, high=config.training_set_size, size=(exemplars_n,)))[0]
+                    selected_indices = torch.tensor([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])+350
                     reference_images, indices, labels =train_loader.dataset[selected_indices.numpy()]
                     per_exemplar = 11
                     generated = model.reference_based_generation_x(N=per_exemplar, reference_image=reference_images)
@@ -192,7 +199,29 @@ for folder in sorted(os.listdir(directory)):
                         reference_images = (reference_images*256).int()
                         generated = (generated*256).int()
 
-                    generate_fancy_grid(config, dir, reference_images, generated)
+                    generate_fancy_grid(config, dir, reference_images, generated, col_num=3, row_num=3)
+            if args.generate_fid:
+                index = 0
+                with torch.no_grad():
+                    for data, _, _ in train_loader:
+                        if index>10000:
+                            break
+                        if config.prior == 'standard':
+                            generated = model.generate_x(N=100).reshape(100, 3, 64, 64)
+                        else:
+                            generated = model.reference_based_generation_x(N=1, reference_image=data)
+
+                        generated = generated.reshape(-1, *config.input_size)
+                        generated_dir = dir + 'fid/'
+
+                        for g in generated:
+                            index += 1
+                            # if read:
+                            # g = g.reshape(3, 64, 64)
+                            plt.imsave(arr=np.transpose(g.cpu().numpy(), (1, 2, 0)),
+                                       fname=generated_dir + "generated_{}.jpg".format(index),
+                                       cmap='gray', format='jpg')
+
 
             if args.count_active_dimensions:
                 train_loader, val_loader, test_loader, config = load_dataset(config,
@@ -213,8 +242,8 @@ for folder in sorted(os.listdir(directory)):
             if args.interpolate:
                 for k in range(100):
                     indices = torch.randint(low=0, high=args.training_set_size, size=(2,))
-                    reference_images = train_loader.dataset.tensors[0][indices]
-                    interpolation(model, reference_images.to(args.device), dir, steps=20, k=k)
+                    reference_images = train_loader.dataset[torch.sort(indices)[0].numpy()][0]
+                    interpolation(model, reference_images.to(args.device), dir, steps=8, k=k)
 
 
             if args.tsne_visualization:
