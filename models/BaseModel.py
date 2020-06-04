@@ -29,7 +29,11 @@ class BaseModel(nn.Module, ABC):
         if self.args.input_type == 'binary':
             self.p_x_mean = NonLinear(self.args.hidden_size, np.prod(self.args.input_size), activation=nn.Sigmoid())
         elif self.args.input_type == 'gray' or self.args.input_type == 'continuous':
-            self.p_x_mean = NonLinear(self.args.hidden_size, np.prod(self.args.input_size))
+            if args.use_logit is True:
+                activation = None
+            else:
+                activation = nn.Sigmoid()
+            self.p_x_mean = NonLinear(self.args.hidden_size, np.prod(self.args.input_size), activation=activation)
             self.p_x_logvar = NonLinear(self.args.hidden_size, np.prod(self.args.input_size),
                                         activation=nn.Hardtanh(min_val=-4.5, max_val=0))
             self.decoder_logstd = torch.nn.Parameter(torch.zeros(self.args.input_size[0], ), requires_grad=True)

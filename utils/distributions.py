@@ -54,12 +54,16 @@ def log_bernoulli(x, mean, average=False, dim=None):
 def log_logistic_256(x, mean, logvar, average=False, reduce=True, dim=None):
     bin_size = 1. / 256.
     # implementation like https://github.com/openai/iaf/blob/master/tf_utils/distributions.py#L28
+    x_lower = torch.floor(x / bin_size)
     scale = torch.exp(logvar)
     x = (torch.floor(x / bin_size) * bin_size - mean) / scale
     cdf_plus = torch.sigmoid(x + bin_size/scale)
+    mask = (x_lower == 255.)
+    cdf_plus_masked = cdf_plus.masked_fill(value=1., mask=mask)
     cdf_minus = torch.sigmoid(x)
-    log_logist_256 = torch.log(cdf_plus - cdf_minus + 1e-7)
-
+    mask = (x_lower == 0.)
+    cdf_minus_masked = cdf_minus.masked_fill(value=0., mask=mask)
+    log_logist_256 = torch.log(cdf_plus_masked - cdf_minus_masked + 1e-7)
     if average:
         return torch.mean(log_logist_256, dim)
     else:
