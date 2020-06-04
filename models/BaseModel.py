@@ -13,6 +13,7 @@ from utils.distributions import log_bernoulli, log_normal_diag, log_normal_stand
 from abc import ABC, abstractmethod
 from torch import _weight_norm
 from scipy import ndimage
+from utils.plot_images import imshow
 
 class BaseModel(nn.Module, ABC):
     def __init__(self, args):
@@ -238,13 +239,19 @@ class BaseModel(nn.Module, ABC):
                 batch_data = batch_data.reshape(-1, *self.args.input_size).numpy()
                 #batch_data = np.pad(batch_data, ((0, 0), (0, 0), (2, 2), (2, 2)), 'minimum')
                 #for i in range(5):
-                for rot in [0]:
-                        augmented_batch = ndimage.rotate(batch_data, rot, reshape=False)
-                        augmented_batch = torch.from_numpy(augmented_batch)
-                        #augmented_batch = batch_data[:, :, i:i+28, j:j+28]
-                        exemplars_embedding, log_variance_z = self.q_z(augmented_batch.to(self.args.device).reshape(-1, np.prod(self.args.input_size)), prior=prior)
-                        cached_z.append(exemplars_embedding)
-                        cached_log_var.append(log_variance_z)
+                for i in range(2):
+                    if i ==0:
+                        augmented_batch = np.flip(batch_data, axis=3)
+                        augmented_batch = augmented_batch.copy()
+                    else:
+                        augmented_batch = batch_data
+                    # imshow(torch.from_numpy(augmented_batch[:10].reshape(-1, 1, 28, 28)), grid=True, show_plot=True)
+
+                    augmented_batch = torch.from_numpy(augmented_batch)
+                    #augmented_batch = batch_data[:, :, i:i+28, j:j+28]
+                    exemplars_embedding, log_variance_z = self.q_z(augmented_batch.to(self.args.device).reshape(-1, np.prod(self.args.input_size)), prior=prior)
+                    cached_z.append(exemplars_embedding)
+                    cached_log_var.append(log_variance_z)
             else:
                 exemplars_embedding, log_variance_z = self.q_z(
                     batch_data.to(self.args.device), prior=prior)
