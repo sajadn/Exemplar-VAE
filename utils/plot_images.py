@@ -49,10 +49,11 @@ def generate_fancy_grid(config, dir, reference_data, generated, col_num=4, row_n
                 grid[:, row:row+image_size, extra_offset+j*image_size+offset:extra_offset+(j+1)*image_size+offset] = generated_images[counts]
                 counts += 1
 
+        grid = np.squeeze(grid)
         if config.input_size[0] > 1:
             grid = np.transpose(grid, (1, 2, 0))
 
-        if config.input_type == 'continuous' and config.input_type != 'gray':
+        if config.input_type == 'continuous' or config.input_type == 'gray':
             grid = np.clip(grid, 0, 255)
             grid = grid.astype(np.uint8)
         else:
@@ -75,18 +76,19 @@ def plot_images_in_line(images, args, dir, file_name):
     grid = np.ones((args.input_size[0], height, width))
     for index, image in enumerate(images):
         image = image.reshape(*args.input_size).cpu().detach().numpy()
-        print(image.shape)
-        print(args.input_size[1]*(index+1))
+        # print(image.shape)
+        # print(args.input_size[1]*(index+1))
         grid[:, 0:args.input_size[1], args.input_size[1]*index:args.input_size[1]*(index+1)] = image
 
-    grid = np.transpose(grid, (1, 2, 0))
+
+    grid = np.squeeze(np.transpose(grid, (1, 2, 0)))
 
     file_name = os.path.join(dir, file_name)
     plt.imsave(arr=grid,
                fname=file_name,
-                format='png')
+                format='png', cmap='gray')
     img = cv2.imread(file_name)
-    res = cv2.resize(img, dsize=(width*4, height*4), interpolation=cv2.INTER_NEAREST)
+    res = cv2.resize(img, dsize=(width*2, height*2), interpolation=cv2.INTER_NEAREST)
     cv2.imwrite(file_name, res)
 
 

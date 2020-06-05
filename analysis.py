@@ -160,9 +160,11 @@ for folder in sorted(os.listdir(directory)):
         model = VAE(config)
         model.to(args.device)
         print(config)
+        kwargs = {'num_workers': 2, 'pin_memory': True} if args.device == 'cuda' else {}
+
         train_loader, val_loader, test_loader, config = load_dataset(config,
                                                                      training_num=args.training_set_size,
-                                                                     no_binarization=True)
+                                                                     no_binarization=True, **kwargs)
 
         if args.just_log_likelihood is False:
             load_model(dir + 'checkpoint_best.pth', model)
@@ -186,20 +188,21 @@ for folder in sorted(os.listdir(directory)):
                 with torch.no_grad():
                     exemplars_n = 10
                     # selected_indices = torch.sort(torch.randint(low=0, high=config.training_set_size, size=(exemplars_n,)))[0]
-                    selected_indices = torch.tensor([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])+350
+                    selected_indices = torch.tensor(np.arange(50))+1000
                     reference_images, indices, labels =train_loader.dataset[selected_indices.numpy()]
                     per_exemplar = 11
                     generated = model.reference_based_generation_x(N=per_exemplar, reference_image=reference_images)
                     generated = generated.reshape(-1, per_exemplar, *config.input_size)
                     rcParams['figure.figsize'] = 4, 3
                     generated_dir = dir + 'generated/'
+                    # imshow(generated.reshape(-1, 1, 28, 28), grid=True, show_plot=True)
                     if config.use_logit:
                         reference_images = torch.floor(inverse_scaled_logit(reference_images, config.lambd)*256).int()
                     else:
                         reference_images = (reference_images*256).int()
                         generated = (generated*256).int()
 
-                    generate_fancy_grid(config, dir, reference_images, generated, col_num=3, row_num=3)
+                    generate_fancy_grid(config, dir, reference_images, generated, col_num=4, row_num=3)
             if args.generate_fid:
                 index = 0
                 with torch.no_grad():
@@ -243,7 +246,7 @@ for folder in sorted(os.listdir(directory)):
                 for k in range(100):
                     indices = torch.randint(low=0, high=args.training_set_size, size=(2,))
                     reference_images = train_loader.dataset[torch.sort(indices)[0].numpy()][0]
-                    interpolation(model, reference_images.to(args.device), dir, steps=8, k=k)
+                    interpolation(model, reference_images.to(args.device), dir, steps=15, k=k)
 
 
             if args.tsne_visualization:
@@ -274,6 +277,7 @@ for folder in sorted(os.listdir(directory)):
             if args.classify:
                 test_acc = []
                 val_acc = []
+
                 test_acc_single_run, val_acc_single_run = classify_data(train_loader, val_loader, test_loader,
                                                                         args.classification_dir, args, model)
                 test_acc.append(test_acc_single_run)
