@@ -100,6 +100,8 @@ parser.add_argument('--less_upsample', type=str2bool, default=False)
 parser.add_argument('--with_augmentation', type=str2bool, default=False)
 parser.add_argument('--scale_std', type=float, default=1.)
 parser.add_argument('--decoder_upper_bound', type=float, default=1.5)
+parser.add_argument('--decay_lr', type=str2bool, default=False)
+
 
 
 
@@ -153,6 +155,11 @@ def run_density_estimation(args, train_loader_input, val_loader_input, test_load
             time_elapsed = time_end - time_start
             content = {'epoch': epoch, 'state_dict': model.state_dict(),
                        'optimizer': optimizer.state_dict(), 'best_loss': best_loss, 'e': e}
+
+            for param_group in optimizer.param_groups:
+                learning_rate = param_group['lr']
+                break
+
             if epoch % 10 == 0:
                 save_model(checkpoint_path_save, checkpoint_path_load, content)
             if val_loss_epoch < best_loss:
@@ -166,14 +173,15 @@ def run_density_estimation(args, train_loader_input, val_loader_input, test_load
                     e = 0
                 if e > args.early_stopping_epochs:
                     break
+                elif args.decay_lr and e > args.early_stopping_epochs // 2:
+                    optimizer = AdamNormGrad(model.parameters(), lr=learning_rate/2)
+                    e = 0
 
             if math.isnan(val_loss_epoch):
                 print("***** val loss is Nan *******")
                 break
 
-            for param_group in optimizer.param_groups:
-                learning_rate = param_group['lr']
-                break
+
 
             time_history.append(time_elapsed)
             val_bpd = val_loss_epoch/(np.prod(args.input_size)*math.log(2))

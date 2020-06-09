@@ -48,6 +48,7 @@ class VAE(AbsModel):
 
         self.p_x_layers = nn.Sequential(
             nn.Linear(self.args.z1_size, 1024//d_size * 8*8),
+            nn.BatchNorm1d(1024//d_size * 8*8),
             nn.ELU(),
             UnFlatten(size=[1024//d_size, 8, 8]),
             nn.Upsample(scale_factor=2),
