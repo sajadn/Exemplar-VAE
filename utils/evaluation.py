@@ -84,7 +84,7 @@ def calculate_likelihood(args, model, loader, S=5000, exemplars_embedding=None):
             data, _, _ = data
         else:
             data, _ = data
-        data = data.to(args.device)
+        data = data.to(args.device).reshape(-1, np.prod(args.input_size))
         if index % 100 == 0:
             print(time.time() - t0)
             t0 = time.time()
