@@ -15,6 +15,7 @@ class AbsModel(BaseModel):
         z_q, z_q_mean, z_q_logvar = latent_stats
         if exemplars_embedding is None and self.args.prior == 'exemplar_prior':
             exemplars_embedding = self.get_exemplar_set(z_q_mean, z_q_logvar, dataset, cache, x_indices)
+        print(z_q.shape)
         log_p_z = self.log_p_z(z=(z_q, x_indices), exemplars_embedding=exemplars_embedding)
         log_q_z = log_normal_diag(z_q, z_q_mean, z_q_logvar, dim=1)
         return -(log_p_z - log_q_z)
@@ -33,8 +34,8 @@ class AbsModel(BaseModel):
     def p_x(self, z):
         if 'conv' in self.args.model_name:
             z = z.reshape(-1, self.bottleneck, self.args.input_size[1]//2, self.args.input_size[1]//2)
-        if self.args.model_name == 'CelebA':
-            z = z.reshape(-1, self.args.z1_size//16, 4, 4)
+        # if self.args.model_name == 'CelebA':
+        #     z = z.reshape(-1, self.args.z1_size//16, 4, 4)
         z = self.p_x_layers(z)
         x_mean = self.p_x_mean(z)
         if self.args.input_type == 'binary':
