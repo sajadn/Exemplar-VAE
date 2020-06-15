@@ -141,7 +141,6 @@ def run_density_estimation(args, train_loader_input, val_loader_input, test_load
     best_model_path_load = os.path.join(dir, 'checkpoint_best.pth')
     decayed = False
     time_history = []
-    # with torch.autograd.detect_anomaly():
     begin_epoch, best_loss, e = initial_or_load(checkpoint_path_load, model, optimizer, dir)
     if args.just_evaluate is False:
         for epoch in range(begin_epoch, args.epochs + 1):
@@ -175,7 +174,7 @@ def run_density_estimation(args, train_loader_input, val_loader_input, test_load
                     break
                 elif args.decay_lr and e > args.early_stopping_epochs // 2:
                     optimizer = AdamNormGrad(model.parameters(), lr=learning_rate/2)
-                    e = 0
+                    args.decay_lr = False
 
             if math.isnan(val_loss_epoch):
                 print("***** val loss is Nan *******")
@@ -237,7 +236,6 @@ def run(args, kwargs):
                   + '_(components_' + str(args.number_components) + ', lr=' + str(args.lr) + ')'
     snapshots_path = os.path.join(args.base_dir, args.parent_dir) + '/'
     dir = snapshots_path + args.model_signature + '_' + model_name + '_' + args.parent_dir + '/'
-
     if args.just_evaluate:
         config = torch.load(dir + args.model_name + '.config')
         config.translation = False
