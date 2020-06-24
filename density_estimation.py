@@ -100,6 +100,7 @@ parser.add_argument('--less_upsample', type=str2bool, default=False)
 parser.add_argument('--with_augmentation', type=str2bool, default=False)
 parser.add_argument('--scale_std', type=float, default=1.)
 parser.add_argument('--decoder_upper_bound', type=float, default=1.5)
+parser.add_argument('--weight_decay', type=float, default=0.)
 parser.add_argument('--decay_lr', type=str2bool, default=False)
 
 
@@ -173,7 +174,7 @@ def run_density_estimation(args, train_loader_input, val_loader_input, test_load
                 if e > args.early_stopping_epochs:
                     break
                 elif args.decay_lr and e > args.early_stopping_epochs // 2:
-                    optimizer = AdamNormGrad(model.parameters(), lr=learning_rate/2)
+                    optimizer = AdamNormGrad(model.parameters(), lr=learning_rate/2, weight_decay=args.weight_decay)
                     args.decay_lr = False
 
             if math.isnan(val_loss_epoch):
@@ -246,7 +247,7 @@ def run(args, kwargs):
     if not os.path.exists(dir):
         os.makedirs(dir)
     model.to(args.device)
-    optimizer = AdamNormGrad(model.parameters(), lr=args.lr)
+    optimizer = AdamNormGrad(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     print(args)
     config_file = dir+'vae_config.txt'
     with open(config_file, 'a') as f:
