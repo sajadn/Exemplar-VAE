@@ -186,21 +186,28 @@ for folder in sorted(os.listdir(directory)):
                                          dir, knn_dictionary, args, val=False)
             if args.generate:
                 with torch.no_grad():
-                    exemplars_n = 10
-                    # selected_indices = torch.sort(torch.randint(low=0, high=config.training_set_size, size=(exemplars_n,)))[0]
-                    selected_indices = torch.tensor(np.arange(50))+1000
-                    reference_images, indices, labels =train_loader.dataset[selected_indices.numpy()]
-                    per_exemplar = 11
-                    generated = model.reference_based_generation_x(N=per_exemplar, reference_image=reference_images)
-                    generated = generated.reshape(-1, per_exemplar, *config.input_size)
-                    rcParams['figure.figsize'] = 4, 3
-                    generated_dir = dir + 'generated/'
-                    # imshow(generated.reshape(-1, 1, 28, 28), grid=True, show_plot=True)
-                    if config.use_logit:
-                        reference_images = torch.floor(inverse_scaled_logit(reference_images, config.lambd)*256).int()
-                    else:
-                        reference_images = (reference_images*256).int()
-                        generated = (generated*256).int()
+                    if config.prior == 'standard':
+                        generated = model.generate_x(N=100).reshape(100, 3, 64, 64)
+                        imshow(generated, grid=True, show_plot=True)
+                    elif config.prior == 'exemplar_prior':
+                        exemplars_n = 128
+                        rcParams['figure.figsize'] = 15, 7
+
+                        # selected_indices = torch.sort(torch.randint(low=0, high=config.training_set_size, size=(exemplars_n,)))[0]
+                        selected_indices = torch.tensor(np.arange(105))+10000
+                        reference_images, indices, labels =train_loader.dataset[selected_indices.numpy()]
+                        per_exemplar = 11
+                        generated = model.reference_based_generation_x(N=per_exemplar, reference_image=reference_images)
+                        # imshow(generated.reshape(-1, 3, 64, 64), show_plot=True, grid=True)
+                        generated = generated.reshape(-1, per_exemplar, *config.input_size)
+                        rcParams['figure.figsize'] = 4, 3
+                        generated_dir = dir + 'generated/'
+                        # imshow(generated.reshape(-1, 1, 28, 28), grid=True, show_plot=True)
+                        if config.use_logit:
+                            reference_images = torch.floor(inverse_scaled_logit(reference_images, config.lambd)*256).int()
+                        else:
+                            reference_images = (reference_images*256).int()
+                            generated = (generated*256).int()
 
                     generate_fancy_grid(config, dir, reference_images, generated, col_num=4, row_num=3)
             if args.generate_fid:
