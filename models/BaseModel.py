@@ -20,8 +20,7 @@ class BaseModel(nn.Module, ABC):
         print("constructor")
         self.args = args
 
-        if self.args.prior == 'vampprior':
-            self.add_pseudoinputs()
+
 
         if self.args.prior == 'exemplar_prior':
             self.prior_log_variance = torch.nn.Parameter(torch.randn((1)))
@@ -40,6 +39,9 @@ class BaseModel(nn.Module, ABC):
 
         self.create_model(args)
         self.he_initializer()
+
+        if self.args.prior == 'vampprior':
+            self.add_pseudoinputs()
 
     def he_initializer(self):
         print("he initializer")
@@ -248,8 +250,8 @@ class BaseModel(nn.Module, ABC):
         train = self.training
         self.eval()
         if self.args.approximate_prior is False:
-            exemplars_indices = torch.randperm(self.args.training_set_size)[:self.args.number_components]
-            exemplars_z, log_variance = self.q_z(dataset[exemplars_indices][0].to(self.args.device), prior=True)
+            exemplars_indices, _ = torch.sort(torch.randperm(self.args.training_set_size)[:self.args.number_components])
+            exemplars_z, log_variance = self.q_z(dataset[exemplars_indices.detach().cpu().numpy()][0].to(self.args.device), prior=True)
             exemplar_set = (exemplars_z, log_variance, exemplars_indices.to(self.args.device))
         else:
             exemplar_set = self.get_approximate_nearest_exemplars(
