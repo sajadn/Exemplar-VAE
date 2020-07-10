@@ -38,10 +38,9 @@ class base_load_data(ABC):
     def vampprior_initialization(self, x_train, init_mean, init_std):
         if self.args.use_training_data_init == 1:
             self.args.pseudoinputs_std = 0.01
-            init = x_train[0:self.args.number_components].T
-            self.args.pseudoinputs_mean = torch.from_numpy(
-                init + self.args.pseudoinputs_std * np.random.randn(np.prod(self.args.input_size),
-                                                               self.args.number_components)).float()
+            init = x_train[0:self.args.number_components][0].T
+            self.args.pseudoinputs_mean =  init + self.args.pseudoinputs_std * torch.randn(np.prod(self.args.input_size),
+                                                               self.args.number_components)
         else:
             self.args.pseudoinputs_mean = init_mean
             self.args.pseudoinputs_std = init_std
