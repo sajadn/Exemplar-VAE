@@ -297,6 +297,7 @@ def load_dataset(args, training_num=None, use_fixed_validation=False, no_binariz
         args.lambd = 0.05
         train_loader, val_loader, test_loader, args = cifar10_loader(args).load_dataset(**kwargs)
     elif args.dataset_name == 'CelebA':
+        args.S = 2000
         args.training_set_size = 162770
         args.input_size = [3, 64, 64]
         args.input_type = 'continuous'

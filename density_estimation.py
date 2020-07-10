@@ -100,6 +100,7 @@ parser.add_argument('--less_upsample', type=str2bool, default=False)
 parser.add_argument('--with_augmentation', type=str2bool, default=False)
 parser.add_argument('--scale_std', type=float, default=1.)
 parser.add_argument('--decoder_upper_bound', type=float, default=1.5)
+parser.add_argument('--weight_decay', type=float, default=0.)
 parser.add_argument('--decay_lr', type=str2bool, default=False)
 
 
@@ -141,7 +142,6 @@ def run_density_estimation(args, train_loader_input, val_loader_input, test_load
     best_model_path_load = os.path.join(dir, 'checkpoint_best.pth')
     decayed = False
     time_history = []
-    # with torch.autograd.detect_anomaly():
     begin_epoch, best_loss, e = initial_or_load(checkpoint_path_load, model, optimizer, dir)
     if args.just_evaluate is False:
         for epoch in range(begin_epoch, args.epochs + 1):
@@ -174,8 +174,8 @@ def run_density_estimation(args, train_loader_input, val_loader_input, test_load
                 if e > args.early_stopping_epochs:
                     break
                 elif args.decay_lr and e > args.early_stopping_epochs // 2:
-                    optimizer = AdamNormGrad(model.parameters(), lr=learning_rate/2)
-                    e = 0
+                    optimizer = AdamNormGrad(model.parameters(), lr=learning_rate/2, weight_decay=args.weight_decay)
+                    args.decay_lr = False
 
             if math.isnan(val_loss_epoch):
                 print("***** val loss is Nan *******")
@@ -237,7 +237,6 @@ def run(args, kwargs):
                   + '_(components_' + str(args.number_components) + ', lr=' + str(args.lr) + ')'
     snapshots_path = os.path.join(args.base_dir, args.parent_dir) + '/'
     dir = snapshots_path + args.model_signature + '_' + model_name + '_' + args.parent_dir + '/'
-
     if args.just_evaluate:
         config = torch.load(dir + args.model_name + '.config')
         config.translation = False
@@ -248,7 +247,7 @@ def run(args, kwargs):
     if not os.path.exists(dir):
         os.makedirs(dir)
     model.to(args.device)
-    optimizer = AdamNormGrad(model.parameters(), lr=args.lr)
+    optimizer = AdamNormGrad(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     print(args)
     config_file = dir+'vae_config.txt'
     with open(config_file, 'a') as f:
