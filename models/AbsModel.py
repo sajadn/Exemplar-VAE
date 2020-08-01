@@ -41,17 +41,17 @@ class AbsModel(BaseModel):
             x_logvar = torch.zeros(1, np.prod(self.args.input_size))
         else:
             if self.args.use_logit is False:
-                if self.args.zero_center:
-                    x_mean += 0.5
+                pass
+                # if self.args.zero_center:
+                #     x_mean += 0.5
                 # x_mean = torch.clamp(x_mean, min=0.+1./512., max=1.-1./512.)
             try:
                 decoder_logstd = torch.clamp(self.decoder_logstd, max=self.args.decoder_upper_bound)
             except:
                 decoder_logstd = self.decoder_logstd
             reshaped_var = decoder_logstd.unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
-            x_logvar = reshaped_var*x_mean.new_ones(size=x_mean.shape)
-        return x_mean.reshape(-1, np.prod(self.args.input_size)),\
-               x_logvar.reshape(-1, np.prod(self.args.input_size))
+            x_logvar = x_mean.new_ones(size=x_mean.shape)
+        return x_mean, x_logvar
 
     def forward(self, x, label=0, num_categories=10):
         z_q_mean, z_q_logvar = self.q_z(x)

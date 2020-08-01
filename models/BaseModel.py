@@ -20,8 +20,6 @@ class BaseModel(nn.Module, ABC):
         print("constructor")
         self.args = args
 
-
-
         if self.args.prior == 'exemplar_prior':
             self.prior_log_variance = torch.nn.Parameter(torch.randn((1)))
 
@@ -35,7 +33,7 @@ class BaseModel(nn.Module, ABC):
             self.p_x_mean = NonLinear(self.args.hidden_size, np.prod(self.args.input_size), activation=activation)
             self.p_x_logvar = NonLinear(self.args.hidden_size, np.prod(self.args.input_size),
                                         activation=nn.Hardtanh(min_val=-4.5, max_val=0))
-            self.decoder_logstd = torch.nn.Parameter(torch.zeros(self.args.input_size[0], ), requires_grad=True)
+            self.decoder_logstd = torch.nn.Parameter(torch.ones(self.args.input_size[0], device=args.device)*-1, requires_grad=True)
 
         self.create_model(args)
         self.he_initializer()
@@ -59,15 +57,15 @@ class BaseModel(nn.Module, ABC):
         pass
 
     def reconstruction_loss(self, x, x_mean, x_logvar):
-        if self.args.zero_center:
-            x += 0.5
+        # if self.args.zero_center:
+        #     x += 0.5
         if self.args.input_type == 'binary':
             return log_bernoulli(x, x_mean, dim=1)
         elif self.args.input_type == 'gray' or self.args.input_type == 'continuous':
             if self.args.use_logit is True:
                 return log_normal_diag(x, x_mean, x_logvar, dim=1)
             else:
-                return log_logistic_256(x, x_mean, x_logvar, dim=1)
+                return log_logistic_256(x, x_mean)
         else:
             raise Exception('Wrong input type!')
 

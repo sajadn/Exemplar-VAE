@@ -27,6 +27,8 @@ def train_one_epoch(epoch, args, train_loader, model, optimizer):
         cache = None
 
     for batch_idx, (data, indices, target) in enumerate(train_loader):
+        #print(data.shape)
+        #imshow(data.reshape(-1, 3, 64, 64), show_plot=True, grid=True)
         data, indices, target = data.to(args.device).squeeze(), indices.to(args.device), target.to(args.device)
         if args.dynamic_binarization:
             x = torch.bernoulli(data)

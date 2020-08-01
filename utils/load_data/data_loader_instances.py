@@ -45,17 +45,17 @@ class h5dataset(torch.utils.data.Dataset):
 
     def preprocess(self, data):
         if self.args.input_type == 'gray' or self.args.input_type == 'continuous':
-            # if self.args.with_augmentation and len(self.tensors[0]) > 50000 and data.shape[0] == 3:
-            #     data = np.transpose(data, (1, 2, 0))
-            #     data = self.trns(Image.fromarray(np.uint8(data)))
-            #     data = np.asarray(data)
-            #     data = np.transpose(data, (2, 0, 1))
+            if self.args.with_augmentation and len(self.tensors[0]) > 50000 and data.shape[0] == 3:
+                data = np.transpose(data, (1, 2, 0))
+                data = self.trns(Image.fromarray(np.uint8(data)))
+                data = np.asarray(data)
+                data = np.transpose(data, (2, 0, 1))
 
             data = np.clip((data + 0.5) / 256., 0., 1.)
             if self.args.use_logit:
                 data = scaled_logit(data, self.args.lambd)
             elif self.args.zero_center:
-                data -= 0.5
+                data  = (data-0.5)*2
 
         else:
             data = data / 255.

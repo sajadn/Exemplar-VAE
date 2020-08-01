@@ -8,6 +8,7 @@ from utils.utils import load_model
 import torch.nn.functional as F
 from utils.utils import inverse_scaled_logit
 from utils.plot_images import imshow
+from utils.distributions import sample_from_discretized_mix_logistic
 
 
 def evaluate_loss(args, model, loader, dataset=None, exemplars_embedding=None):
@@ -40,11 +41,12 @@ def evaluate_loss(args, model, loader, dataset=None, exemplars_embedding=None):
 
 def visualize_reconstruction(test_samples, model, args, dir):
     samples_reconstruction = model.reconstruct_x(test_samples[0:25])
-
+    samples_reconstruction = sample_from_discretized_mix_logistic(samples_reconstruction, 10)
+    samples_reconstruction = samples_reconstruction/2+0.5
     if args.use_logit:
         test_samples = torch.floor(inverse_scaled_logit(test_samples, args.lambd)*256).int()
-        samples_reconstruction =  torch.floor(inverse_scaled_logit(samples_reconstruction, args.lambd)*256).int()
-    plot_images(args, test_samples.cpu().numpy()[0:25], dir, 'real', size_x=5, size_y=5)
+        samples_reconstruction = torch.floor(inverse_scaled_logit(samples_reconstruction, args.lambd)*256).int()
+    plot_images(args, test_samples.cpu().numpy()[0:25]/2+0.5, dir, 'real', size_x=5, size_y=5)
     plot_images(args, samples_reconstruction.cpu().numpy(), dir, 'reconstructions', size_x=5, size_y=5)
 
 
@@ -52,6 +54,9 @@ def visualize_generation(dataset, model, args, dir):
     generation_rounds = 1
     for i in range(generation_rounds):
         samples_rand = model.generate_x(25, dataset=dataset)
+        samples_rand = sample_from_discretized_mix_logistic(samples_rand, 10)
+        samples_rand = samples_rand / 2 + 0.5
+
         plot_images(args, samples_rand.cpu().numpy(), dir, 'generations_{}'.format(i), size_x=5, size_y=5)
     if args.prior == 'vampprior':
         pseudo_means = model.means(model.idle_input)
@@ -105,6 +110,7 @@ def calculate_likelihood(args, model, loader, S=5000, exemplars_embedding=None):
 def final_evaluation(train_loader, test_loader, best_model_path_load,
                      model, optimizer, args, dir):
         _ = load_model(best_model_path_load, model, optimizer)
+        model.eval()
         exemplars_embedding = load_all_pseudo_input(args, model, train_loader.dataset)
         test_samples = next(iter(test_loader))[0].to(args.device)
         visualize_reconstruction(test_samples, model, args, dir)
