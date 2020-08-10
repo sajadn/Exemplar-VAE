@@ -4,6 +4,8 @@ import torch.utils.data
 import torch.nn as nn
 from models.AbsModel import AbsModel
 from torch.nn.utils import weight_norm
+from utils.nn import NonLinear
+
 
 class Flatten(torch.nn.Module):
     def forward(self, x):
@@ -43,9 +45,11 @@ class VAE(AbsModel):
             Flatten()
         )
 
-        self.q_z_mean = nn.Sequential(nn.Linear(1024//d_size * 4 * 4, self.args.z1_size))
+        self.q_z_mean = NonLinear(1024//d_size * 4 * 4, self.args.z1_size,
+                                  activation=nn.Hardtanh(min_val=-6., max_val=2.))
 
-        self.q_z_logvar = nn.Sequential(nn.Linear(1024//d_size * 4 * 4, self.args.z1_size))
+        self.q_z_logvar = NonLinear(1024//d_size * 4 * 4, self.args.z1_size,
+                                    activation=nn.Hardtanh(min_val=-6., max_val=2.))
 
         self.p_x_layers = nn.Sequential(
             nn.Linear(self.args.z1_size, 1024//d_size * 8*8),

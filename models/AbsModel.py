@@ -45,8 +45,10 @@ class AbsModel(BaseModel):
                     x_mean += 0.5
                 # x_mean = torch.clamp(x_mean, min=0.+1./512., max=1.-1./512.)
             try:
-                decoder_logstd = torch.clamp(self.decoder_logstd, max=self.args.decoder_upper_bound)
+                decoder_logstd = torch.clamp(self.decoder_logstd, max=self.args.decoder_upper_bound,
+                                                              min=-2.84)
             except:
+                print("EXECPTION")
                 decoder_logstd = self.decoder_logstd
             reshaped_var = decoder_logstd.unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
             x_logvar = reshaped_var*x_mean.new_ones(size=x_mean.shape)

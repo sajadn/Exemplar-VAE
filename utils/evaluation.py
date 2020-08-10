@@ -105,6 +105,7 @@ def calculate_likelihood(args, model, loader, S=5000, exemplars_embedding=None):
 def final_evaluation(train_loader, test_loader, best_model_path_load,
                      model, optimizer, args, dir):
         _ = load_model(best_model_path_load, model, optimizer)
+        model.eval()
         exemplars_embedding = load_all_pseudo_input(args, model, train_loader.dataset)
         test_samples = next(iter(test_loader))[0].to(args.device)
         visualize_reconstruction(test_samples, model, args, dir)
