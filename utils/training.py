@@ -26,6 +26,7 @@ def train_one_epoch(epoch, args, train_loader, model, optimizer):
     else:
         cache = None
 
+    total = 0
     for batch_idx, (data, indices, target) in enumerate(train_loader):
         data, indices, target = data.to(args.device).squeeze(), indices.to(args.device), target.to(args.device)
         if args.dynamic_binarization:
@@ -43,13 +44,14 @@ def train_one_epoch(epoch, args, train_loader, model, optimizer):
         loss.backward()
         optimizer.step()
 
+        total += len(data)
         with torch.no_grad():
-            train_loss += loss.data.item()
-            train_re += -RE.data.item()
-            train_kl += KL.data.item()
+            train_loss += loss.data.item()*len(data)
+            train_re += -RE.data.item()*len(data)
+            train_kl += KL.data.item()*len(data)
             if cache is not None:
                 cache = (cache[0].detach(), cache[1].detach())
-    train_loss /= len(train_loader)
-    train_re /= len(train_loader)
-    train_kl /= len(train_loader)
+    train_loss /= total
+    train_re /= total
+    train_kl /= total
     return train_loss, train_re, train_kl

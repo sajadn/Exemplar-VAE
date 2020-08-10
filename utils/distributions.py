@@ -51,7 +51,7 @@ def log_bernoulli(x, mean, average=False, dim=None):
         return torch.sum(log_bernoulli, dim)
 
 
-def log_Logistic_256(x, mean, logvar, average=False, reduce=True, dim=None):
+def log_logistic_256(x, mean, logvar, average=False, reduce=True, dim=None):
     bin_size = 1. / 256.
 
     # implementation like https://github.com/openai/iaf/blob/master/tf_utils/distributions.py#L28

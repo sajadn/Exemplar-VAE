@@ -16,6 +16,7 @@ def evaluate_loss(args, model, loader, dataset=None, exemplars_embedding=None):
     if exemplars_embedding is None:
         exemplars_embedding = load_all_pseudo_input(args, model, dataset)
 
+    total = 0
     for data in loader:
         if len(data) == 3:
             data, _, _ = data
@@ -29,12 +30,13 @@ def evaluate_loss(args, model, loader, dataset=None, exemplars_embedding=None):
         if model.args.use_logit:
             lambd = torch.tensor(model.args.lambd).float()
             loss += (-F.softplus(-data) - F.softplus(data) - torch.log((1 - 2 * lambd)/256)).sum(dim=1).mean()
-        evaluateed_elbo += loss.data.item()
-        evaluate_re += -RE.data.item()
-        evaluate_kl += KL.data.item()
-    evaluateed_elbo /= len(loader)
-    evaluate_re /= len(loader)
-    evaluate_kl /= len(loader)
+        evaluateed_elbo += loss.data.item()*len(data)
+        evaluate_re += -RE.data.item()*len(data)
+        evaluate_kl += KL.data.item()*len(data)
+        total += len(data)
+    evaluateed_elbo /= total
+    evaluate_re /= total
+    evaluate_kl /= total
     return evaluateed_elbo, evaluate_re, evaluate_kl
 
 
