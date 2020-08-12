@@ -45,8 +45,7 @@ class VAE(AbsModel):
             Flatten()
         )
 
-        self.q_z_mean = NonLinear(1024//d_size * 4 * 4, self.args.z1_size,
-                                  activation=nn.Hardtanh(min_val=-6., max_val=2.))
+        self.q_z_mean = NonLinear(1024//d_size * 4 * 4, self.args.z1_size)
 
         self.q_z_logvar = NonLinear(1024//d_size * 4 * 4, self.args.z1_size,
                                     activation=nn.Hardtanh(min_val=-6., max_val=2.))
