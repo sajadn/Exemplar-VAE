@@ -6,6 +6,7 @@ from utils.utils import importing_model
 import torch
 import math
 import os
+from torch.optim import Adam, Adamax
 from utils.utils import save_model, load_model
 from utils.optimizer import AdamNormGrad
 import time
@@ -102,6 +103,7 @@ parser.add_argument('--scale_std', type=float, default=1.)
 parser.add_argument('--decoder_upper_bound', type=float, default=1.5)
 parser.add_argument('--weight_decay', type=float, default=0.)
 parser.add_argument('--decay_lr', type=str2bool, default=False)
+parser.add_argument('--optimizer_type', type=str, default='adam_norm_grad')
 
 
 
@@ -133,6 +135,16 @@ def save_loss_files(folder, train_loss_history,
     torch.save(val_kl_history, folder + '.val_kl')
 
 
+def define_optimizer(optimizer_type, lr, model_params, weight_decay):
+    if optimizer_type == 'adam_norm_grad':
+        return AdamNormGrad(model_params, lr=lr, weight_decay=args.weight_decay)
+    elif optimizer_type == 'adam':
+        return Adam(model_params, lr=lr, weight_decay=args.weight_decay)
+    elif optimizer_type == 'adamax':
+        return Adamax(model_params, lr=lr, weight_decay=args.weight_decay)
+
+
+
 def run_density_estimation(args, train_loader_input, val_loader_input, test_loader_input, model, optimizer, dir, model_name='vae'):
     torch.save(args, dir + args.model_name + '.config')
     train_loss_history, train_re_history, train_kl_history, val_loss_history, val_re_history, val_kl_history, \
@@ -157,7 +169,7 @@ def run_density_estimation(args, train_loader_input, val_loader_input, test_load
                        'optimizer': optimizer.state_dict(), 'best_loss': best_loss, 'e': e}
 
             for param_group in optimizer.param_groups:
-                learning_rate = param_group['lr']
+                current_learning_rate = param_group['lr']
                 break
 
             if epoch % 10 == 0:
@@ -173,9 +185,8 @@ def run_density_estimation(args, train_loader_input, val_loader_input, test_load
                     e = 0
                 if e > args.early_stopping_epochs:
                     break
-                elif args.decay_lr and e > args.early_stopping_epochs // 2:
-                    optimizer = AdamNormGrad(model.parameters(), lr=learning_rate/2, weight_decay=args.weight_decay)
-                    args.decay_lr = False
+                elif args.decay_lr and e > args.early_stopping_epochs // 2 and current_learning_rate>args.lr/8:
+                    optimizer = define_optimizer(args.optimizer_type, lr=current_learning_rate/2, model_params=model.parameters(), weight_decay=args.weight_decay)
 
             if math.isnan(val_loss_epoch):
                 print("***** val loss is Nan *******")
@@ -192,7 +203,7 @@ def run_density_estimation(args, train_loader_input, val_loader_input, test_load
                            'o Val.  loss: {:.2f}   (RE: {:.2f}, KL: {:.2f})\n' \
                            '^ Val.  BPD:  {:.5f}\n'\
                            '--> Early stopping: {}/{} (BEST: {:.2f})\n'.format(epoch, args.epochs, time_elapsed,
-                                                                               learning_rate,
+                                                                               current_learning_rate,
                                                                                train_loss_epoch, train_re_epoch,
                                                                                train_kl_epoch, val_loss_epoch,
                                                                                val_re_epoch, val_kl_epoch,
@@ -247,7 +258,8 @@ def run(args, kwargs):
     if not os.path.exists(dir):
         os.makedirs(dir)
     model.to(args.device)
-    optimizer = AdamNormGrad(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    optimizer = define_optimizer(args.optimizer_type, lr=args.lr, model_params=model.parameters(),
+                                 weight_decay=args.weight_decay)
     print(args)
     config_file = dir+'vae_config.txt'
     with open(config_file, 'a') as f:

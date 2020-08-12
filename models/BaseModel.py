@@ -36,6 +36,7 @@ class BaseModel(nn.Module, ABC):
             self.p_x_logvar = NonLinear(self.args.hidden_size, np.prod(self.args.input_size),
                                         activation=nn.Hardtanh(min_val=-4.5, max_val=0))
             self.decoder_logstd = torch.nn.Parameter(torch.zeros(self.args.input_size[0], ), requires_grad=True)
+            # self.decoder_logstd = torch.tensor(-2.84, device='cuda')
 
         self.create_model(args)
         self.he_initializer()
