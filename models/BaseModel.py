@@ -174,7 +174,9 @@ class BaseModel(nn.Module, ABC):
         return z_sample_rand
 
     def reconstruct_x(self, x):
-        x_reconstructed, _, _ = self.forward(x)
+        x_reconstructed, _, z = self.forward(x)
+        if self.args.model_name == 'pixelcnn':
+            x_reconstructed = self.pixelcnn_generate(z[0], z[3])
         return x_reconstructed
 
     def logit_inverse(self, x):

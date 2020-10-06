@@ -12,6 +12,8 @@ def importing_model(args):
         from models.new_vae import VAE
     elif args.model_name == 'single_conv':
         from models.fully_conv import VAE
+    elif args.model_name == 'pixelcnn':
+        from models.PixelCNN import VAE
     else:
         raise Exception('Wrong name of the model!')
     return VAE

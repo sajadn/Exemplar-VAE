@@ -35,7 +35,10 @@ class BaseHModel(BaseModel):
         else:
             z1_sample_rand = z1_sample_mean
 
-        generated_xs, _ = self.p_x(z1_sample_rand.view(-1, self.args.z1_size),
+        if self.args.model_name=='pixelcnn':
+            generated_xs = self.pixelcnn_generate(z1_sample_rand, z)
+        else:
+            generated_xs, _ = self.p_x(z1_sample_rand.view(-1, self.args.z1_size),
                                    z.view(-1, self.args.z2_size))
         return generated_xs
 
@@ -56,20 +59,25 @@ class BaseHModel(BaseModel):
         z1_q_logvar = self.q_z1_logvar(h)
         return z1_q_mean, z1_q_logvar
 
-    def p_x(self, z1, z2):
+    def p_x(self, z1, z2, x=None):
         z1 = self.p_x_layers_z1(z1)
 
         z2 = self.p_x_layers_z2(z2)
 
-        h = torch.cat((z1, z2), 1)
+        if self.args.model_name == 'pixelcnn':
+            h = torch.cat((x, z1, z2), 1)
+            # pixelcnn part of the decoder
+            h_decoder = self.pixelcnn(h)
 
-        if 'convhvae_2level' in self.args.model_name:
-            h = self.p_x_layers_joint_pre(h)
-            if self.args.model_name == 'convhvae_2level':
-                h = h.view(-1, self.args.input_size[0], self.args.input_size[1], self.args.input_size[2])
+        else:
 
-        h_decoder = self.p_x_layers_joint(h)
+            h = torch.cat((z1, z2), 1)
+            if 'convhvae_2level' in self.args.model_name:
+                h = self.p_x_layers_joint_pre(h)
+                if self.args.model_name == 'convhvae_2level':
+                    h = h.view(-1, self.args.input_size[0], self.args.input_size[1], self.args.input_size[2])
 
+            h_decoder = self.p_x_layers_joint(h)
         x_mean = self.p_x_mean(h_decoder)
         if 'convhvae_2level' in self.args.model_name:
             x_mean = x_mean.view(-1, np.prod(self.args.input_size))
@@ -90,6 +98,9 @@ class BaseHModel(BaseModel):
         z1_q_mean, z1_q_logvar = self.q_z1(x, z2_q)
         z1_q = self.reparameterize(z1_q_mean, z1_q_logvar)
         z1_p_mean, z1_p_logvar = self.p_z1(z2_q)
-        x_mean, x_logvar = self.p_x(z1_q, z2_q)
+        if self.args.model_name == 'pixelcnn':
+            x_mean, x_logvar = self.p_x(x, z1_q, z2_q)
+        else:
+            x_mean, x_logvar = self.p_x(z1_q, z2_q)
         return x_mean, x_logvar, (z1_q, z1_q_mean, z1_q_logvar, z2_q, z2_q_mean, z2_q_logvar, z1_p_mean, z1_p_logvar)
 
