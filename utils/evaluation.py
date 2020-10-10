@@ -23,13 +23,13 @@ def evaluate_loss(args, model, loader, dataset=None, exemplars_embedding=None):
         x = data
         x_indices = None
         x = (x, x_indices)
-        loss, RE, KL = model.calculate_loss(x, average=True, exemplars_embedding=exemplars_embedding)
-        evaluateed_elbo += loss.data.item()
-        evaluate_re += -RE.data.item()
-        evaluate_kl += KL.data.item()
-    evaluateed_elbo /= len(loader)
-    evaluate_re /= len(loader)
-    evaluate_kl /= len(loader)
+        loss, RE, KL = model.calculate_loss(x, average=False, exemplars_embedding=exemplars_embedding)
+        evaluateed_elbo += loss.sum().item()
+        evaluate_re += -RE.sum().item()
+        evaluate_kl += KL.sum().item()
+    evaluateed_elbo /= len(loader.dataset)
+    evaluate_re /= len(loader.dataset)
+    evaluate_kl /= len(loader.dataset)
     return evaluateed_elbo, evaluate_re, evaluate_kl
 
 
@@ -93,14 +93,16 @@ def calculate_likelihood(args, model, loader, S=5000, exemplars_embedding=None):
     return -np.mean(likelihood_test)
 
 
-def final_evaluation(train_loader, test_loader, best_model_path_load,
+def final_evaluation(train_loader, test_loader, valid_loader, best_model_path_load,
                      model, optimizer, args, dir):
         _ = load_model(best_model_path_load, model, optimizer)
+        model.eval()
         exemplars_embedding = load_all_pseudo_input(args, model, train_loader.dataset)
         test_samples = next(iter(test_loader))[0].to(args.device)
         visualize_reconstruction(test_samples, model, args, dir)
         visualize_generation(train_loader.dataset, model, args, dir)
         test_elbo, test_re, test_kl = evaluate_loss(args, model, test_loader, dataset=train_loader.dataset, exemplars_embedding=exemplars_embedding)
+        valid_elbo, valid_re, valid_kl = evaluate_loss(args, model, valid_loader, dataset=valid_loader.dataset, exemplars_embedding=exemplars_embedding)
         train_elbo, _, _ = evaluate_loss(args, model, train_loader, dataset=train_loader.dataset, exemplars_embedding=exemplars_embedding)
         test_log_likelihood = calculate_likelihood(args, model, test_loader, exemplars_embedding=exemplars_embedding, S=args.S)
         final_evaluation_txt = 'FINAL EVALUATION ON TEST SET\n' \
@@ -108,12 +110,14 @@ def final_evaluation(train_loader, test_loader, best_model_path_load,
                                'LogL (TRAIN): {:.2f}\n' \
                                'ELBO (TEST): {:.2f}\n' \
                                'ELBO (TRAIN): {:.2f}\n' \
+                               'ELBO (VALID): {:.2f}\n' \
                                'RE: {:.2f}\n' \
                                'KL: {:.2f}'.format(
             test_log_likelihood,
             0,
             test_elbo,
             train_elbo,
+            valid_elbo,
             test_re,
             test_kl)
 

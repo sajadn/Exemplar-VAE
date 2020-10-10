@@ -176,7 +176,7 @@ class BaseModel(nn.Module, ABC):
     def reconstruct_x(self, x):
         x_reconstructed, _, z = self.forward(x)
         if self.args.model_name == 'pixelcnn':
-            x_reconstructed = self.pixelcnn_generate(z[0], z[3])
+            x_reconstructed = self.pixelcnn_generate(z[0].reshape(-1, self.args.z1_size), z[3].reshape(-1, self.args.z2_size))
         return x_reconstructed
 
     def logit_inverse(self, x):
@@ -203,10 +203,10 @@ class BaseModel(nn.Module, ABC):
         return variance[0]*torch.ones(shape).to(self.args.device)
 
     def q_z(self, x, prior=False):
-        if 'conv' in self.args.model_name:
+        if  'conv' in self.args.model_name or 'pixelcnn'==self.args.model_name:
             x = x.view(-1, self.args.input_size[0], self.args.input_size[1], self.args.input_size[2])
         h = self.q_z_layers(x)
-        if self.args.model_name == 'convhvae_2level':
+        if self.args.model_name == 'convhvae_2level' or self.args.model_name=='pixelcnn':
             h = h.view(x.size(0), -1)
         z_q_mean = self.q_z_mean(h)
         if prior is True:

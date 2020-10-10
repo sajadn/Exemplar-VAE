@@ -195,7 +195,7 @@ def run_density_estimation(args, train_loader_input, val_loader_input, test_load
                         train_re_history, train_kl_history, val_loss_history, val_re_history, val_kl_history)
 
     with torch.no_grad():
-        final_evaluation(train_loader_input, test_loader_input,
+        final_evaluation(train_loader_input, test_loader_input, val_loader_input,
                          best_model_path_load, model, optimizer, args, dir)
 
 
