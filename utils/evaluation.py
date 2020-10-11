@@ -81,8 +81,14 @@ def calculate_likelihood(args, model, loader, S=5000, exemplars_embedding=None):
             t0 = time.time()
             print('{:.2f}%'.format(index / (1. * len(auxilary_loader)) * 100))
         x = data.expand(S, data.size(1))
-        x_indices = None
-        prob, _, _ = model.calculate_loss((x, x_indices), exemplars_embedding=exemplars_embedding)
+        BS = S//100
+        prob = []
+        for i in range(BS):
+            bx = x[i*100:(i+1)*100]
+            x_indices = None
+            bprob, _, _ = model.calculate_loss((bx, x_indices), exemplars_embedding=exemplars_embedding)
+            prob.append(bprob)
+        prob = torch.stack(prob, dim=0)
         likelihood_x = logsumexp(-prob.cpu().numpy())
         if model.args.use_logit:
             lambd = torch.tensor(model.args.lambd).float()
