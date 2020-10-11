@@ -82,13 +82,24 @@ class BaseModel(nn.Module, ABC):
         return eps.mul(std).add_(mu)
 
     def log_p_z_vampprior(self, z, exemplars_embedding):
-        if exemplars_embedding is None:
-            C = self.args.number_components
-            X = self.means(self.idle_input)
-            z_p_mean, z_p_logvar = self.q_z(X, prior=True)  # C x M
+        C = self.args.number_components
+        if self.args.MoG:
+            z_p_mean = self.means(self.idle_input)
+            z_p_logvar = self.vars(self.idle_input)
         else:
-            C = torch.tensor(self.args.number_components).float()
-            z_p_mean, z_p_logvar = exemplars_embedding
+            if exemplars_embedding is None:
+                C = self.args.number_components
+                X = self.means(self.idle_input)
+                if self.args.subsample_vampprior:
+                    perm = torch.randperm(X.shape[0])
+                    idx = perm[:C//2]
+                    C = C//2
+                    X = X[idx]
+                z_p_mean, z_p_logvar = self.q_z(X, prior=True)  # C x M
+                
+            else:
+                C = torch.tensor(self.args.number_components).float()
+                z_p_mean, z_p_logvar = exemplars_embedding
 
         z_expand = z.unsqueeze(1)
         means = z_p_mean.unsqueeze(0)
@@ -129,12 +140,17 @@ class BaseModel(nn.Module, ABC):
 
     def add_pseudoinputs(self):
         nonlinearity = nn.Hardtanh(min_val=0.0, max_val=1.0)
-        self.means = NonLinear(self.args.number_components, np.prod(self.args.input_size), bias=False, activation=nonlinearity)
-        # init pseudo-inputs
-        if self.args.use_training_data_init:
-            self.means.linear.weight.data = self.args.pseudoinputs_mean
+        if self.args.MoG: 
+            self.means = NonLinear(self.args.number_components, np.prod(self.args.z1_size), bias=False)
+            self.vars = NonLinear(self.args.number_components, np.prod(self.args.z1_size), bias=False)
         else:
-            normal_init(self.means.linear, self.args.pseudoinputs_mean, self.args.pseudoinputs_std)
+            self.means = NonLinear(self.args.number_components, np.prod(self.args.input_size), bias=False, activation=nonlinearity)
+        
+            # init pseudo-inputs
+            if self.args.use_training_data_init:
+                self.means.linear.weight.data = self.args.pseudoinputs_mean
+            else:
+                normal_init(self.means.linear, self.args.pseudoinputs_mean, self.args.pseudoinputs_std)
         self.idle_input = Variable(torch.eye(self.args.number_components, self.args.number_components), requires_grad=False)
         self.idle_input = self.idle_input.to(self.args.device)
 
@@ -153,8 +169,12 @@ class BaseModel(nn.Module, ABC):
         if self.args.prior == 'standard':
             z_sample_rand = torch.FloatTensor(N, self.args.z1_size).normal_().to(self.args.device)
         elif self.args.prior == 'vampprior':
-            means = self.means(self.idle_input)[0:N]
-            z_sample_gen_mean, z_sample_gen_logvar = self.q_z(means)
+            if self.args.MoG:
+                z_sample_gen_mean = self.means(self.idle_input)[0:N]
+                z_sample_gen_logvar = self.vars(self.idle_input)[0:N]
+            else:
+                means = self.means(self.idle_input)[0:N]
+                z_sample_gen_mean, z_sample_gen_logvar = self.q_z(means)
             z_sample_rand = self.reparameterize(z_sample_gen_mean, z_sample_gen_logvar)
             z_sample_rand = z_sample_rand.to(self.args.device)
         elif self.args.prior == 'exemplar_prior':

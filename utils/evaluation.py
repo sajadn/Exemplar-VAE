@@ -11,7 +11,7 @@ import torch.nn.functional as F
 def evaluate_loss(args, model, loader, dataset=None, exemplars_embedding=None):
     evaluateed_elbo, evaluate_re, evaluate_kl = 0, 0, 0
     model.eval()
-    if exemplars_embedding is None:
+    if exemplars_embedding is None and not args.MoG:
         exemplars_embedding = load_all_pseudo_input(args, model, dataset)
 
     for data in loader:
@@ -48,7 +48,7 @@ def visualize_generation(dataset, model, args, dir):
     for i in range(generation_rounds):
         samples_rand = model.generate_x(25, dataset=dataset)
         plot_images(args, samples_rand.cpu().numpy(), dir, 'generations_{}'.format(i), size_x=5, size_y=5)
-    if args.prior == 'vampprior':
+    if args.prior == 'vampprior' and not args.MoG:
         pseudo_means = model.means(model.idle_input)
         plot_images(args, pseudo_means[0:25].cpu().numpy(), dir, 'pseudoinputs', size_x=5, size_y=5)
 
@@ -97,7 +97,7 @@ def final_evaluation(train_loader, test_loader, valid_loader, best_model_path_lo
                      model, optimizer, args, dir):
         _ = load_model(best_model_path_load, model, optimizer)
         model.eval()
-        exemplars_embedding = load_all_pseudo_input(args, model, train_loader.dataset)
+        exemplars_embedding = load_all_pseudo_input(args, model, train_loader.dataset) if args.MoG is False else None
         test_samples = next(iter(test_loader))[0].to(args.device)
         visualize_reconstruction(test_samples, model, args, dir)
         visualize_generation(train_loader.dataset, model, args, dir)
