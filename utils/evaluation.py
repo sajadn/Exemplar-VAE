@@ -88,7 +88,7 @@ def calculate_likelihood(args, model, loader, S=5000, exemplars_embedding=None):
             x_indices = None
             bprob, _, _ = model.calculate_loss((bx, x_indices), exemplars_embedding=exemplars_embedding)
             prob.append(bprob)
-        prob = torch.stack(prob, dim=0)
+        prob = torch.cat(prob, dim=0)
         likelihood_x = logsumexp(-prob.cpu().numpy())
         if model.args.use_logit:
             lambd = torch.tensor(model.args.lambd).float()
