@@ -104,6 +104,10 @@ def initial_or_load(checkpoint_path_load, model, optimizer, dir):
         best_loss = checkpoint['best_loss']
         e = checkpoint['e']
     else:
+        torch.manual_seed(args.seed)
+        if args.device=='cuda':
+            torch.cuda.manual_seed(args.seed)
+        random.seed(args.seed)
         begin_epoch = 1
         best_loss = math.inf
         e = 0
@@ -239,11 +243,6 @@ def run(args, kwargs):
 if __name__ == "__main__":
     args = parser.parse_args()
     args.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-    torch.manual_seed(args.seed)
-    if args.device=='cuda':
-        torch.cuda.manual_seed(args.seed)
-    random.seed(args.seed)
 
     kwargs = {'num_workers': 2, 'pin_memory': True} if args.device=='cuda' else {}
     run(args, kwargs)
