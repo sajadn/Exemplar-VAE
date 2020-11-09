@@ -181,8 +181,8 @@ def run_density_estimation(args, train_loader_input, val_loader_input, test_load
                                                                                learning_rate,
                                                                                train_loss_epoch, train_re_epoch,
                                                                                train_kl_epoch, val_loss_epoch,
-                                                                               val_re_epoch, val_kl_epoch, e,
-                                                                               BPD,
+                                                                               val_re_epoch, val_kl_epoch,
+                                                                               BPD, e,
                                                                                args.early_stopping_epochs, best_loss)
 
             if args.prior == 'exemplar_prior':

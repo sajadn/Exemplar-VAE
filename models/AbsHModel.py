@@ -80,8 +80,8 @@ class BaseHModel(BaseModel):
 
             h_decoder = self.p_x_layers_joint(h)
         x_mean = self.p_x_mean(h_decoder)
-        if 'convhvae_2level' in self.args.model_name or self.args.model_name=='pixelcnn':
-            x_mean = x_mean.view(-1, np.prod(self.args.input_size))
+        #if 'convhvae_2level' in self.args.model_name or self.args.model_name=='pixelcnn':
+            #x_mean = x_mean.view(-1, np.prod(self.args.input_size))
 
         if self.args.input_type == 'binary':
             x_logvar = 0.
@@ -89,8 +89,8 @@ class BaseHModel(BaseModel):
             # x_mean = torch.clamp(x_mean, min=0.+1./512., max=1.-1./512.)
             # x_logvar = self.p_x_logvar(h_decoder)
             x_logvar = x_mean.new_ones(size=x_mean.shape)
-            if 'convhvae_2level' in self.args.model_name or self.args.model_name=='pixelcnn':
-                x_logvar = x_logvar.view(-1, np.prod(self.args.input_size))
+            #if 'convhvae_2level' in self.args.model_name or self.args.model_name=='pixelcnn':
+            #    x_logvar = x_logvar.view(-1, np.prod(self.args.input_size))
 
         return x_mean, x_logvar
 

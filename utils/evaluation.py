@@ -35,7 +35,7 @@ def evaluate_loss(args, model, loader, dataset=None, exemplars_embedding=None):
 
 def visualize_reconstruction(test_samples, model, args, dir):
     samples_reconstruction = model.reconstruct_x(test_samples[0:25])
-    samples_reconstruction = sample_from_discretized_mix_logistic(samples_reconstruction, 10)
+    #samples_reconstruction = sample_from_discretized_mix_logistic(samples_reconstruction, 10)
     samples_reconstruction = samples_reconstruction / 2 + 0.5
     if args.use_logit:
         test_samples = model.logit_inverse(test_samples)
@@ -48,7 +48,7 @@ def visualize_generation(dataset, model, args, dir):
     generation_rounds = 1
     for i in range(generation_rounds):
         samples_rand = model.generate_x(25, dataset=dataset)
-        samples_rand = sample_from_discretized_mix_logistic(samples_rand, 10)
+        # samples_rand = sample_from_discretized_mix_logistic(samples_rand, 10)
         samples_rand = samples_rand / 2 + 0.5
         plot_images(args, samples_rand.cpu().numpy(), dir, 'generations_{}'.format(i), size_x=5, size_y=5)
     if args.prior == 'vampprior':

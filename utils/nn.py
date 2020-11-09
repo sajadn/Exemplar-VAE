@@ -521,7 +521,7 @@ class PixelSNAIL(nn.Module):
         for i in range(n_out_res_block):
             out.append(GatedResBlock(channel, res_channel, 1))
 
-        out.extend([nn.ELU(inplace=True), WNConv2d(channel, n_class, 100)])
+        out.extend([nn.ELU(inplace=True), WNConv2d(channel, n_class, 1)])
 
         self.out = nn.Sequential(*out)
 
