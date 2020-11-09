@@ -58,7 +58,7 @@ class BaseModel(nn.Module, ABC):
             if self.args.use_logit is True:
                 return log_normal_diag(x, x_mean, x_logvar, dim=1)
             else:
-                return log_logistic_256(x, x_mean, x_logvar, dim=1)
+                return log_logistic_256(x, x_mean)
         else:
             raise Exception('Wrong input type!')
 

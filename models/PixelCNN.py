@@ -80,13 +80,13 @@ class VAE(BaseHModel):
         #    MaskedConv2d('B', 64, 64, 3, 1, 1, bias=False), nn.BatchNorm2d(64), act,
         #    MaskedConv2d('B', 64, 64, 3, 1, 1, bias=False), nn.BatchNorm2d(64), act
         #)
-        self.pixelcnn = PixelSNAIL([28, 28], 64, 64, 3, 1, 4, 64)
+        self.pixelcnn = PixelSNAIL([32, 32], 256, 256, 2, 1, 4, 256)
 
         if self.args.input_type == 'binary':
             self.p_x_mean = Conv2d(64, 1, 1, 1, 0, activation=nn.Sigmoid())
         elif self.args.input_type == 'gray' or self.args.input_type == 'continuous':
-            self.p_x_mean = Conv2d(64, self.args.input_size[0], 1, 1, 0, activation=nn.Sigmoid(), bias=False)
-            self.p_x_logvar = Conv2d(64, self.args.input_size[0], 1, 1, 0, activation=nn.Hardtanh(min_val=-4.5, max_val=0.), bias=False)
+            self.p_x_mean = Conv2d(64, 100, 1, 1, 0, bias=False)
+            # self.p_x_logvar = Conv2d(64, self.args.input_size[0], 1, 1, 0, activation=nn.Hardtanh(min_val=-4.5, max_val=0.), bias=False)
 
     def pixelcnn_generate(self, z1, z2):
         # Sampling from PixelCNN
