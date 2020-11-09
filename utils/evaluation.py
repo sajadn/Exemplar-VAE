@@ -114,12 +114,16 @@ def final_evaluation(train_loader, test_loader, valid_loader, best_model_path_lo
         valid_elbo, valid_re, valid_kl = evaluate_loss(args, model, valid_loader, dataset=valid_loader.dataset, exemplars_embedding=exemplars_embedding)
         train_elbo, _, _ = evaluate_loss(args, model, train_loader, dataset=train_loader.dataset, exemplars_embedding=exemplars_embedding)
         test_log_likelihood = calculate_likelihood(args, model, test_loader, exemplars_embedding=exemplars_embedding, S=args.S)
+        import numpy as np
+        import math
+        BPD = test_log_likelihood/(math.log(2)*np.prod(args.input_size))
         final_evaluation_txt = 'FINAL EVALUATION ON TEST SET\n' \
                                'LogL (TEST): {:.2f}\n' \
                                'LogL (TRAIN): {:.2f}\n' \
                                'ELBO (TEST): {:.2f}\n' \
                                'ELBO (TRAIN): {:.2f}\n' \
                                'ELBO (VALID): {:.2f}\n' \
+                               'BPD (TEST): {:.2f}\n' \
                                'RE: {:.2f}\n' \
                                'KL: {:.2f}'.format(
             test_log_likelihood,
@@ -127,6 +131,7 @@ def final_evaluation(train_loader, test_loader, valid_loader, best_model_path_lo
             test_elbo,
             train_elbo,
             valid_elbo,
+            BPD,
             test_re,
             test_kl)
 

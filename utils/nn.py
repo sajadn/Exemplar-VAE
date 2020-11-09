@@ -484,10 +484,10 @@ class PixelSNAIL(nn.Module):
             kernel = kernel_size
 
         self.horizontal = CausalConv2d(
-            3, channel, [kernel // 2, kernel], padding='down'
+            9, channel, [kernel // 2, kernel], padding='down'
         )
         self.vertical = CausalConv2d(
-            3, channel, [(kernel + 1) // 2, kernel // 2], padding='downright'
+            9, channel, [(kernel + 1) // 2, kernel // 2], padding='downright'
         )
 
         coord_x = (torch.arange(height).float() - height / 2) / height
@@ -521,7 +521,7 @@ class PixelSNAIL(nn.Module):
         for i in range(n_out_res_block):
             out.append(GatedResBlock(channel, res_channel, 1))
 
-        out.extend([nn.ELU(inplace=True), WNConv2d(channel, n_class, 1)])
+        out.extend([nn.ELU(inplace=True), WNConv2d(channel, n_class, 100)])
 
         self.out = nn.Sequential(*out)
 

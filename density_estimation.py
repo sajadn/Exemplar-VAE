@@ -169,17 +169,20 @@ def run_density_estimation(args, train_loader_input, val_loader_input, test_load
                 learning_rate = param_group['lr']
                 break
 
+            import numpy as np
             time_history.append(time_elapsed)
-
+            BPD = val_loss_epoch/(math.log(2)*np.prod(args.input_size))
             epoch_report = 'Epoch: {}/{}, Time elapsed: {:.2f}s\n' \
                            'learning rate: {:.5f}\n' \
                            '* Train loss: {:.2f}   (RE: {:.2f}, KL: {:.2f})\n' \
                            'o Val.  loss: {:.2f}   (RE: {:.2f}, KL: {:.2f})\n' \
+                           'BPD: {:.3f}\n' \
                            '--> Early stopping: {}/{} (BEST: {:.2f})\n'.format(epoch, args.epochs, time_elapsed,
                                                                                learning_rate,
                                                                                train_loss_epoch, train_re_epoch,
                                                                                train_kl_epoch, val_loss_epoch,
                                                                                val_re_epoch, val_kl_epoch, e,
+                                                                               BPD,
                                                                                args.early_stopping_epochs, best_loss)
 
             if args.prior == 'exemplar_prior':
