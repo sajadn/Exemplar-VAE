@@ -132,7 +132,7 @@ def load_dataset(args, training_num=None, use_fixed_validation=False, no_binariz
         if training_num is None:
             args.training_set_size = 50000
         args.input_size = [1, 28, 28]
-        if args.continuous is True:
+        if args.input_type == 'continuous':
             args.input_type = 'gray'
             args.dynamic_binarization = False
             no_binarization = True
@@ -147,7 +147,7 @@ def load_dataset(args, training_num=None, use_fixed_validation=False, no_binariz
             args.training_set_size = 50000
         args.input_size = [1, 28, 28]
 
-        if args.continuous is True:
+        if args.input_type == 'continuous':
             print("*****Continuous Data*****")
             args.input_type = 'gray'
             args.dynamic_binarization = False
