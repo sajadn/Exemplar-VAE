@@ -68,8 +68,6 @@ class BaseModel(nn.Module, ABC):
         x_mean, x_logvar, latent_stats = self.forward(x)
         RE = self.reconstruction_loss(x, x_mean, x_logvar)
         KL = self.kl_loss(latent_stats, exemplars_embedding, dataset, cache, x_indices)
-        print(RE.shape)
-        print(KL.shape)
         loss = -RE + beta*KL
         if average:
             loss = torch.mean(loss)
