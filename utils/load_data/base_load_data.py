@@ -32,7 +32,7 @@ class base_load_data(ABC):
                 lambd = self.args.lambd
                 x_train = self.logit(lambd + (1 - 2 * lambd) * (x_train + np.random.rand(*x_train.shape)) / 256.)
                 x_test = self.logit(lambd + (1 - 2 * lambd) * (x_test + np.random.rand(*x_test.shape)) / 256.)
-            elif self.args.continuous:
+            elif self.args.input_type == 'continuous':
                 x_train = (np.clip((x_train + 0.5) / 256., 0., 1.) -0.5) * 2
                 x_test = (np.clip((x_test + 0.5) / 256., 0., 1.) -0.5) * 2
         else:
