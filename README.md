@@ -1,5 +1,5 @@
 ## Exemplar-VAE
-Code for reproducing results in the paper: [Exemplar VAE](https://arxiv.org/abs/2004.04795)
+Code for reproducing results in the paper: [Exemplar VAE](https://arxiv.org/abs/2004.04795); Accepted to Neurips 2020
 
 ## Requirements
 ```
