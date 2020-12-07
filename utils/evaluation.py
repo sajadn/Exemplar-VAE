@@ -81,14 +81,18 @@ def calculate_likelihood(args, model, loader, S=5000, exemplars_embedding=None):
             t0 = time.time()
             print('{:.2f}%'.format(index / (1. * len(auxilary_loader)) * 100))
         x = data.expand(S, data.size(1))
-        BS = S//100
-        prob = []
-        for i in range(BS):
-            bx = x[i*100:(i+1)*100]
+        if args.model_name == 'pixelcnn':
+            BS = S//100
+            prob = []
+            for i in range(BS):
+                bx = x[i*100:(i+1)*100]
+                x_indices = None
+                bprob, _, _ = model.calculate_loss((bx, x_indices), exemplars_embedding=exemplars_embedding)
+                prob.append(bprob)
+            prob = torch.cat(prob, dim=0)
+        else:
             x_indices = None
-            bprob, _, _ = model.calculate_loss((bx, x_indices), exemplars_embedding=exemplars_embedding)
-            prob.append(bprob)
-        prob = torch.cat(prob, dim=0)
+            prob, _, _ = model.calculate_loss((x, x_indices), exemplars_embedding=exemplars_embedding)
         likelihood_x = logsumexp(-prob.cpu().numpy())
         if model.args.use_logit:
             lambd = torch.tensor(model.args.lambd).float()
