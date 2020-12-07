@@ -6,6 +6,12 @@ Code for reproducing results in [Exemplar VAE](https://arxiv.org/abs/2004.04795)
 pip3 install -r requirements.txt
 ```
 
+## Exemplar Based Generation
+```
+python3 analysis.py --dir pretrained_model  --generate
+```
+<img src="images/exemplar_generation.png" width="600"/>
+
 ## Density Estimation 
 ```
 python3 density_estimation.py --prior exemplar_prior --dataset {dynamic_mnist|fashion_mnist|omniglot} --model_name {vae|hvae_2level|convhvae_2level} --number_components {25000|11500} --approximate_prior {True|False} 
@@ -18,14 +24,6 @@ python3 density_estimation.py --prior exemplar_prior --dataset {dynamic_mnist|fa
 python3 analysis.py --dir pretrained_model  --classify
 ```
 <img src="images/data_augmentation.png" width="400"/>
-
-
-## Exemplar Based Generation
-```
-python3 analysis.py --dir pretrained_model  --generate
-```
-<img src="images/exemplar_generation.png" width="600"/>
-
 
 
 ## Cyclic Generation
