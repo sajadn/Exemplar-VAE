@@ -5,6 +5,9 @@ Code for reproducing results in [Exemplar VAE](https://arxiv.org/abs/2004.04795)
 ```
 pip3 install -r requirements.txt
 ```
+## Exemplar VAE Samples
+<img src="images/full_generation.png" width="600"/>
+
 
 ## Exemplar Based Generation
 ```
