@@ -10,7 +10,9 @@ pip3 install -r requirements.txt
 ```
 python3 analysis.py --dir pretrained_model  --generate
 ```
+<img src="images/celebA_exemplar_generation.png" width="600"/>
 <img src="images/exemplar_generation.png" width="600"/>
+
 
 ## Density Estimation 
 ```
